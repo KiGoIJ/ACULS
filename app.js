@@ -37,7 +37,7 @@ let isAuthenticated = false;
 const STORAGE_KEY = 'asuls_fsb_data';
 let employees = [];
 let editingId = null;
-let filteredEmployees = []; // для отображения
+let filteredEmployees = [];
 
 // ===== ЗАГРУЗКА / СОХРАНЕНИЕ =====
 function loadData() {
@@ -98,14 +98,13 @@ function populateSelect(id, values) {
         opt.textContent = val;
         select.appendChild(opt);
     });
-    select.value = currentValue; // сохраняем выбранное, если было
+    select.value = currentValue;
 }
 
 // ===== СТАТИСТИКА =====
 function updateStats(list) {
     document.getElementById('totalCount').textContent = list.length;
 
-    // По подразделениям
     const deptCount = {};
     list.forEach(emp => {
         const d = emp.department || 'Не указано';
@@ -114,7 +113,6 @@ function updateStats(list) {
     const deptStr = Object.entries(deptCount).map(([k, v]) => `${k}: ${v}`).join('; ');
     document.getElementById('deptStats').textContent = deptStr || '—';
 
-    // По званиям
     const rankCount = {};
     list.forEach(emp => {
         const r = emp.rank || 'Не указано';
@@ -123,7 +121,6 @@ function updateStats(list) {
     const rankStr = Object.entries(rankCount).map(([k, v]) => `${k}: ${v}`).join('; ');
     document.getElementById('rankStats').textContent = rankStr || '—';
 
-    // По статусам
     const statusCount = {};
     list.forEach(emp => {
         const s = emp.status || 'Не указано';
@@ -141,7 +138,11 @@ function renderTable(data) {
     (data || filteredEmployees).forEach((emp) => {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
         const tr = document.createElement('tr');
+        const hasPhoto = emp.photo && emp.photo.length > 100;
         tr.innerHTML = `
+            <td>
+                ${hasPhoto ? `<img src="${emp.photo}" alt="фото" style="width:40px; height:40px; border-radius:50%; object-fit:cover; cursor:pointer;" class="photo-thumb" data-id="${emp.id}" />` : '<span style="color:#aaa;">—</span>'}
+            </td>
             <td>${fio}</td>
             <td>${emp.department || ''}</td>
             <td>${emp.rank || ''}</td>
@@ -150,25 +151,26 @@ function renderTable(data) {
             <td>
                 <button class="btn-icon edit" data-id="${emp.id}"><i class="fas fa-pen"></i></button>
                 <button class="btn-icon delete" data-id="${emp.id}"><i class="fas fa-trash"></i></button>
+                <button class="btn-icon print" data-id="${emp.id}"><i class="fas fa-print" title="Печать личного дела"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
     });
 
-    // Обработчики удаления
+    // Удаление
     document.querySelectorAll('.delete').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.currentTarget.dataset.id;
             if (confirm('Удалить сотрудника?')) {
                 employees = employees.filter(emp => emp.id !== id);
                 saveData();
-                applyFilters(); // переприменяем фильтры
-                populateFilterOptions(); // обновим списки фильтров
+                applyFilters();
+                populateFilterOptions();
             }
         });
     });
 
-    // Обработчики редактирования
+    // Редактирование
     document.querySelectorAll('.edit').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.currentTarget.dataset.id;
@@ -185,8 +187,29 @@ function renderTable(data) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     });
+
+    // Печать PDF
+    document.querySelectorAll('.print').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            const emp = employees.find(e => e.id === id);
+            if (emp) printEmployeeCard(emp);
+        });
+    });
+
+    // Клик по фото — увеличение
+    document.querySelectorAll('.photo-thumb').forEach(img => {
+        img.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const emp = employees.find(e => e.id === id);
+            if (emp && emp.photo) {
+                showPhotoModal(emp.photo, `${emp.lastName} ${emp.firstName}`);
+            }
+        });
+    });
 }
 
+// ===== ФОРМА С ФОТО =====
 function fillForm(emp) {
     const fields = ['lastName', 'firstName', 'patronymic', 'birthDate', 'department', 'rank', 'position', 'personalNumber', 'hireDate'];
     fields.forEach(f => {
@@ -197,12 +220,27 @@ function fillForm(emp) {
     if (gender) gender.value = emp.gender || 'мужской';
     const status = document.getElementById('status');
     if (status) status.value = emp.status || 'действует';
+
+    const photoInput = document.getElementById('photo');
+    const preview = document.getElementById('photoPreview');
+    const previewImg = document.getElementById('photoPreviewImg');
+    if (emp.photo && emp.photo.length > 100) {
+        previewImg.src = emp.photo;
+        preview.style.display = 'block';
+        photoInput.value = '';
+    } else {
+        preview.style.display = 'none';
+        previewImg.src = '#';
+    }
 }
 
 function resetForm() {
     const form = document.getElementById('employeeForm');
     if (form) form.reset();
     editingId = null;
+    document.getElementById('photoPreview').style.display = 'none';
+    document.getElementById('photoPreviewImg').src = '#';
+    document.getElementById('photo').value = '';
     const titleIcon = document.querySelector('.card__title i');
     const titleText = document.querySelector('.card__title');
     if (titleIcon) titleIcon.className = 'fas fa-user-plus';
@@ -211,7 +249,110 @@ function resetForm() {
     if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Добавить';
 }
 
-// ===== ЭКСПОРТ В EXCEL =====
+// Предпросмотр фото
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'photo') {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const previewImg = document.getElementById('photoPreviewImg');
+                const preview = document.getElementById('photoPreview');
+                previewImg.src = ev.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+});
+
+// Удаление фото
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'removePhotoBtn') {
+        document.getElementById('photo').value = '';
+        document.getElementById('photoPreview').style.display = 'none';
+        document.getElementById('photoPreviewImg').src = '#';
+    }
+});
+
+// ===== МОДАЛЬНОЕ ОКНО ДЛЯ ФОТО =====
+function showPhotoModal(src, name) {
+    const modal = document.createElement('div');
+    modal.className = 'modal photo-modal';
+    modal.style.display = 'flex';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:600px; text-align:center;">
+            <span class="modal-close" onclick="this.closest('.modal').remove()">&times;</span>
+            <h4 style="margin-bottom:16px;">${name}</h4>
+            <img src="${src}" alt="Фото" style="max-width:100%; max-height:70vh; border-radius:8px; border:2px solid #d4af37;" />
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.remove();
+    });
+}
+
+// ===== ПЕЧАТЬ ЛИЧНОГО ДЕЛА В PDF =====
+function printEmployeeCard(emp) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+
+    const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+    const birthDate = emp.birthDate || '—';
+    const gender = emp.gender || '—';
+    const department = emp.department || '—';
+    const rank = emp.rank || '—';
+    const position = emp.position || '—';
+    const personalNumber = emp.personalNumber || '—';
+    const hireDate = emp.hireDate || '—';
+    const status = emp.status || '—';
+    const photo = emp.photo && emp.photo.length > 100 ? emp.photo : null;
+
+    doc.setFontSize(18);
+    doc.setTextColor('#0b1a2e');
+    doc.text('ЛИЧНОЕ ДЕЛО', 105, 20, { align: 'center' });
+    doc.setDrawColor(212, 175, 55);
+    doc.line(20, 25, 190, 25);
+
+    if (photo) {
+        try {
+            doc.addImage(photo, 'JPEG', 150, 35, 40, 50);
+        } catch (e) {}
+    }
+
+    const fields = [
+        ['ФИО', fio],
+        ['Дата рождения', birthDate],
+        ['Пол', gender],
+        ['Подразделение', department],
+        ['Звание', rank],
+        ['Должность', position],
+        ['Личный номер', personalNumber],
+        ['Дата принятия', hireDate],
+        ['Статус', status]
+    ];
+    let y = 35;
+    const xLabel = 25;
+    const xValue = 70;
+    doc.setFontSize(12);
+    fields.forEach(([label, value]) => {
+        doc.setTextColor('#1a2f44');
+        doc.text(label + ':', xLabel, y);
+        doc.setTextColor('#000000');
+        doc.text(value, xValue, y);
+        y += 10;
+    });
+
+    doc.setFontSize(10);
+    doc.setTextColor('#7a8a9e');
+    doc.text('Сформировано в АСУЛС ТУ ФСБ', 105, 280, { align: 'center' });
+    doc.text(new Date().toLocaleDateString(), 105, 285, { align: 'center' });
+
+    doc.save(`Личное_дело_${emp.lastName}_${emp.firstName}.pdf`);
+}
+
+// ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
 function exportToExcel() {
     const data = filteredEmployees.map(emp => ({
         'Фамилия': emp.lastName,
@@ -232,7 +373,6 @@ function exportToExcel() {
     XLSX.writeFile(wb, 'АСУЛС_список.xlsx');
 }
 
-// ===== ИМПОРТ ИЗ EXCEL =====
 function importFromExcel(file) {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -241,7 +381,6 @@ function importFromExcel(file) {
             const workbook = XLSX.read(data, { type: 'array' });
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
             const rows = XLSX.utils.sheet_to_json(firstSheet);
-            // Преобразуем в наш формат
             const imported = rows.map(row => ({
                 id: Date.now().toString() + Math.random().toString(36).substr(2, 4),
                 lastName: (row['Фамилия'] || '').toString().trim(),
@@ -256,7 +395,6 @@ function importFromExcel(file) {
                 hireDate: row['Дата принятия'] ? new Date(row['Дата принятия']).toISOString().split('T')[0] : '',
                 status: (row['Статус'] || '').toString().trim()
             }));
-            // Заменяем данные (или можно добавить – сделаем замену)
             if (imported.length > 0) {
                 if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
                     employees = imported;
@@ -277,7 +415,6 @@ function importFromExcel(file) {
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', function() {
-    // Элементы
     const loginScreen = document.getElementById('loginScreen');
     const appContent = document.getElementById('appContent');
     const loginForm = document.getElementById('loginForm');
@@ -296,8 +433,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const exportJsonBtn = document.getElementById('exportJsonBtn');
     const importJsonBtn = document.getElementById('importJsonBtn');
     const importJsonInput = document.getElementById('importJsonInput');
-
-    // Смена пароля
     const changePasswordBtn = document.getElementById('changePasswordBtn');
     const changePasswordModal = document.getElementById('changePasswordModal');
     const modalClose = document.getElementById('modalClose');
@@ -307,7 +442,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmPassword = document.getElementById('confirmPassword');
     const changePasswordError = document.getElementById('changePasswordError');
 
-    // Функция входа
     function login(password) {
         if (checkPassword(password)) {
             isAuthenticated = true;
@@ -335,22 +469,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (loginError) loginError.style.display = 'none';
     }
 
-    // Обработчики входа/выхода
     if (loginForm) {
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const pwd = passwordInput ? passwordInput.value : '';
-            login(pwd);
+            login(passwordInput.value);
         });
     }
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
-    }
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
 
-    // Форма добавления/редактирования
     if (employeeForm) {
         employeeForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            const photoInput = document.getElementById('photo');
+            let photoData = '';
+            const previewImg = document.getElementById('photoPreviewImg');
+            if (previewImg.src && previewImg.src.startsWith('data:')) {
+                photoData = previewImg.src;
+            } else {
+                // Если фото не меняли, но есть сохранённое – оставляем
+                const emp = employees.find(e => e.id === editingId);
+                if (emp && emp.photo) photoData = emp.photo;
+            }
+
             const newEmp = {
                 id: editingId || Date.now().toString(),
                 lastName: document.getElementById('lastName').value.trim(),
@@ -363,7 +503,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 position: document.getElementById('position').value.trim(),
                 personalNumber: document.getElementById('personalNumber').value.trim(),
                 hireDate: document.getElementById('hireDate').value,
-                status: document.getElementById('status').value
+                status: document.getElementById('status').value,
+                photo: photoData
             };
 
             if (editingId) {
@@ -387,7 +528,6 @@ document.addEventListener('DOMContentLoaded', function() {
             field.addEventListener('input', applyFilters);
         }
     });
-
     if (clearFiltersBtn) {
         clearFiltersBtn.addEventListener('click', function() {
             if (filterDepartment) filterDepartment.value = '';
@@ -398,25 +538,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Экспорт Excel
-    if (exportExcelBtn) {
-        exportExcelBtn.addEventListener('click', exportToExcel);
-    }
-
-    // Импорт Excel
+    // Excel
+    if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportToExcel);
     if (importExcelBtn && importExcelInput) {
-        importExcelBtn.addEventListener('click', function() {
-            importExcelInput.click();
-        });
+        importExcelBtn.addEventListener('click', () => importExcelInput.click());
         importExcelInput.addEventListener('change', function(e) {
-            if (this.files.length > 0) {
+            if (this.files.length) {
                 importFromExcel(this.files[0]);
+                this.value = '';
             }
-            this.value = '';
         });
     }
 
-    // Экспорт JSON
+    // JSON
     if (exportJsonBtn) {
         exportJsonBtn.addEventListener('click', function() {
             const blob = new Blob([JSON.stringify(employees, null, 2)], { type: 'application/json' });
@@ -426,12 +560,8 @@ document.addEventListener('DOMContentLoaded', function() {
             link.click();
         });
     }
-
-    // Импорт JSON
     if (importJsonBtn && importJsonInput) {
-        importJsonBtn.addEventListener('click', function() {
-            importJsonInput.click();
-        });
+        importJsonBtn.addEventListener('click', () => importJsonInput.click());
         importJsonInput.addEventListener('change', function(e) {
             const file = this.files[0];
             if (!file) return;
@@ -466,24 +596,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (confirmPassword) confirmPassword.value = '';
             if (changePasswordError) changePasswordError.style.display = 'none';
         });
-
-        modalClose.addEventListener('click', function() {
-            changePasswordModal.style.display = 'none';
-        });
-
+        modalClose.addEventListener('click', () => changePasswordModal.style.display = 'none');
         window.addEventListener('click', function(e) {
-            if (e.target === changePasswordModal) {
-                changePasswordModal.style.display = 'none';
-            }
+            if (e.target === changePasswordModal) changePasswordModal.style.display = 'none';
         });
-
         changePasswordForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const oldPwd = oldPassword ? oldPassword.value : '';
-            const newPwd = newPassword ? newPassword.value : '';
-            const confirmPwd = confirmPassword ? confirmPassword.value : '';
+            const oldPwd = oldPassword.value;
+            const newPwd = newPassword.value;
+            const confirmPwd = confirmPassword.value;
             if (changePasswordError) changePasswordError.style.display = 'none';
-
             if (newPwd !== confirmPwd) {
                 if (changePasswordError) {
                     changePasswordError.textContent = 'Новый пароль и подтверждение не совпадают.';
@@ -505,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Инициализация: показываем экран входа
+    // Начальное состояние
     if (loginScreen) loginScreen.style.display = 'flex';
     if (appContent) appContent.style.display = 'none';
 });
