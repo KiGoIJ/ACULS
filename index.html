@@ -10,6 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
     <!-- SheetJS для Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- jsPDF для PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- html2canvas (для PDF, если понадобится) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -59,7 +63,7 @@
 
         <main class="container main">
 
-            <!-- БЛОК СТАТИСТИКИ -->
+            <!-- СТАТИСТИКА -->
             <section class="card stats-card">
                 <h2 class="card__title"><i class="fas fa-chart-pie"></i> Статистика</h2>
                 <div class="stats-grid" id="statsContainer">
@@ -96,7 +100,7 @@
                 </div>
             </section>
 
-            <!-- ФОРМА ДОБАВЛЕНИЯ -->
+            <!-- ФОРМА ДОБАВЛЕНИЯ/РЕДАКТИРОВАНИЯ -->
             <section class="card">
                 <h2 class="card__title"><i class="fas fa-user-plus"></i> Добавить сотрудника</h2>
                 <form id="employeeForm" class="form-grid">
@@ -152,6 +156,14 @@
                             <option value="уволен">Уволен</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="photo">Фото сотрудника</label>
+                        <input type="file" id="photo" accept="image/*" />
+                        <div id="photoPreview" style="margin-top:8px; display:none;">
+                            <img id="photoPreviewImg" src="#" alt="Предпросмотр" style="max-width:100px; max-height:100px; border-radius:6px; border:1px solid #d0d8e0;" />
+                            <button type="button" id="removePhotoBtn" class="btn btn--secondary" style="padding:4px 10px; font-size:0.8rem; margin-top:4px;">Удалить фото</button>
+                        </div>
+                    </div>
                     <div class="form-group form-group--full">
                         <button type="submit" class="btn btn--primary"><i class="fas fa-save"></i> Добавить</button>
                         <button type="reset" class="btn btn--secondary"><i class="fas fa-undo"></i> Очистить</button>
@@ -159,13 +171,14 @@
                 </form>
             </section>
 
-            <!-- ТАБЛИЦА -->
+            <!-- ТАБЛИЦА СОТРУДНИКОВ -->
             <section class="card">
                 <h2 class="card__title"><i class="fas fa-users"></i> Список личного состава</h2>
                 <div class="table-responsive">
                     <table id="employeeTable">
                         <thead>
                             <tr>
+                                <th>Фото</th>
                                 <th>ФИО</th>
                                 <th>Подразделение</th>
                                 <th>Звание</th>
@@ -175,7 +188,7 @@
                             </tr>
                         </thead>
                         <tbody id="tableBody">
-                            <!-- строки генерируются JS -->
+                            <!-- генерируется JS -->
                         </tbody>
                     </table>
                 </div>
@@ -191,7 +204,7 @@
 
     </div> <!-- конец #appContent -->
 
-    <!-- Модальное окно смены пароля -->
+    <!-- МОДАЛЬНОЕ ОКНО СМЕНЫ ПАРОЛЯ -->
     <div id="changePasswordModal" class="modal" style="display:none;">
         <div class="modal-content">
             <span class="modal-close" id="modalClose">&times;</span>
