@@ -1,7 +1,55 @@
+// ===== УПРАВЛЕНИЕ ПАРОЛЕМ =====
+const PASSWORD_HASH_KEY = 'asuls_password_hash';
+const DEFAULT_PASSWORD = 'admin';
+
+// Хеширование пароля (SHA-256)
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Получить сохранённый хеш, если нет - установить по умолчанию
+async function getStoredPasswordHash() {
+  let stored = localStorage.getItem(PASSWORD_HASH_KEY);
+  if (!stored) {
+    const defaultHash = await hashPassword(DEFAULT_PASSWORD);
+    localStorage.setItem(PASSWORD_HASH_KEY, defaultHash);
+    return defaultHash;
+  }
+  return stored;
+}
+
+// Проверка введённого пароля
+async function checkPassword(input) {
+  const storedHash = await getStoredPasswordHash();
+  const inputHash = await hashPassword(input);
+  return inputHash === storedHash;
+}
+
+// Смена пароля
+async function changePassword(oldPwd, newPwd) {
+  if (!(await checkPassword(oldPwd))) {
+    throw new Error('Неверный старый пароль');
+  }
+  if (newPwd.length < 4) {
+    throw new Error('Новый пароль должен содержать не менее 4 символов');
+  }
+  const newHash = await hashPassword(newPwd);
+  localStorage.setItem(PASSWORD_HASH_KEY, newHash);
+}
+
+// ===== СОСТОЯНИЕ АВТОРИЗАЦИИ =====
+let isAuthenticated = false;
+
+// ===== ОСНОВНЫЕ ПЕРЕМЕННЫЕ =====
 const STORAGE_KEY = 'asuls_fsb_data';
 let employees = [];
 let editingId = null;
 
+// ===== ЗАГРУЗКА / СОХРАНЕНИЕ ДАННЫХ =====
 function loadData() {
   const raw = localStorage.getItem(STORAGE_KEY);
   employees = raw ? JSON.parse(raw) : [];
@@ -11,12 +59,13 @@ function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
 }
 
+// ===== ОТРИСОВКА ТАБЛИЦЫ =====
 function renderTable() {
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
-  employees.forEach((emp, index) => {
-    const tr = document.createElement('tr');
+  employees.forEach((emp) => {
     const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+    const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${fio}</td>
       <td>${emp.department || ''}</td>
@@ -31,7 +80,7 @@ function renderTable() {
     tbody.appendChild(tr);
   });
 
-  // Удаление
+  // Обработчики удаления
   document.querySelectorAll('.delete').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const id = e.currentTarget.dataset.id;
@@ -43,24 +92,14 @@ function renderTable() {
     });
   });
 
-  // Редактирование – заполняем форму данными
+  // Обработчики редактирования
   document.querySelectorAll('.edit').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const id = e.currentTarget.dataset.id;
       const emp = employees.find(e => e.id === id);
       if (!emp) return;
       editingId = id;
-      document.getElementById('lastName').value = emp.lastName || '';
-      document.getElementById('firstName').value = emp.firstName || '';
-      document.getElementById('patronymic').value = emp.patronymic || '';
-      document.getElementById('birthDate').value = emp.birthDate || '';
-      document.getElementById('gender').value = emp.gender || 'мужской';
-      document.getElementById('department').value = emp.department || '';
-      document.getElementById('rank').value = emp.rank || '';
-      document.getElementById('position').value = emp.position || '';
-      document.getElementById('personalNumber').value = emp.personalNumber || '';
-      document.getElementById('hireDate').value = emp.hireDate || '';
-      document.getElementById('status').value = emp.status || 'действует';
+      fillForm(emp);
       document.querySelector('.card__title i').className = 'fas fa-user-edit';
       document.querySelector('.card__title').childNodes[2].textContent = ' Редактировать сотрудника';
       document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Сохранить';
@@ -69,7 +108,31 @@ function renderTable() {
   });
 }
 
-// Обработка отправки формы (добавление / обновление)
+// ===== ЗАПОЛНЕНИЕ ФОРМЫ =====
+function fillForm(emp) {
+  document.getElementById('lastName').value = emp.lastName || '';
+  document.getElementById('firstName').value = emp.firstName || '';
+  document.getElementById('patronymic').value = emp.patronymic || '';
+  document.getElementById('birthDate').value = emp.birthDate || '';
+  document.getElementById('gender').value = emp.gender || 'мужской';
+  document.getElementById('department').value = emp.department || '';
+  document.getElementById('rank').value = emp.rank || '';
+  document.getElementById('position').value = emp.position || '';
+  document.getElementById('personalNumber').value = emp.personalNumber || '';
+  document.getElementById('hireDate').value = emp.hireDate || '';
+  document.getElementById('status').value = emp.status || 'действует';
+}
+
+// ===== СБРОС ФОРМЫ (после сохранения) =====
+function resetForm() {
+  document.getElementById('employeeForm').reset();
+  editingId = null;
+  document.querySelector('.card__title i').className = 'fas fa-user-plus';
+  document.querySelector('.card__title').childNodes[2].textContent = ' Добавить сотрудника';
+  document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
+}
+
+// ===== ОБРАБОТКА ОТПРАВКИ ФОРМЫ =====
 document.getElementById('employeeForm').addEventListener('submit', function(e) {
   e.preventDefault();
   const newEmp = {
@@ -88,27 +151,27 @@ document.getElementById('employeeForm').addEventListener('submit', function(e) {
   };
 
   if (editingId) {
-    // Обновляем
     const index = employees.findIndex(e => e.id === editingId);
     if (index !== -1) employees[index] = newEmp;
-    editingId = null;
-    // Возвращаем заголовок и кнопку
-    document.querySelector('.card__title i').className = 'fas fa-user-plus';
-    document.querySelector('.card__title').childNodes[2].textContent = ' Добавить сотрудника';
-    document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
   } else {
     employees.push(newEmp);
   }
   saveData();
   renderTable();
-  this.reset();
-  // Сброс состояния редактирования (если было)
-  if (!editingId) {
-    // ничего
-  }
+  resetForm();
 });
 
-// Экспорт
+// ===== ПОИСК =====
+document.getElementById('searchInput').addEventListener('input', function() {
+  const query = this.value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#tableBody tr');
+  rows.forEach(row => {
+    const fio = row.cells[0]?.textContent.toLowerCase() || '';
+    row.style.display = fio.includes(query) ? '' : 'none';
+  });
+});
+
+// ===== ЭКСПОРТ / ИМПОРТ =====
 document.getElementById('exportBtn').addEventListener('click', function() {
   const blob = new Blob([JSON.stringify(employees, null, 2)], { type: 'application/json' });
   const link = document.createElement('a');
@@ -117,7 +180,6 @@ document.getElementById('exportBtn').addEventListener('click', function() {
   link.click();
 });
 
-// Импорт
 document.getElementById('importBtn').addEventListener('click', function() {
   document.getElementById('importInput').click();
 });
@@ -142,16 +204,96 @@ document.getElementById('importInput').addEventListener('change', function(e) {
   this.value = '';
 });
 
-// Поиск
-document.getElementById('searchInput').addEventListener('input', function() {
-  const query = this.value.toLowerCase().trim();
-  const rows = document.querySelectorAll('#tableBody tr');
-  rows.forEach(row => {
-    const fio = row.cells[0]?.textContent.toLowerCase() || '';
-    row.style.display = fio.includes(query) ? '' : 'none';
-  });
+// ===== АВТОРИЗАЦИЯ =====
+async function login(password) {
+  const ok = await checkPassword(password);
+  if (ok) {
+    isAuthenticated = true;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContent').style.display = 'block';
+    // Загружаем данные и отрисовываем
+    loadData();
+    renderTable();
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('passwordInput').value = '';
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordInput').focus();
+  }
+}
+
+function logout() {
+  isAuthenticated = false;
+  document.getElementById('appContent').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('passwordInput').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+// Обработчик формы входа
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const pwd = document.getElementById('passwordInput').value;
+  login(pwd);
 });
 
-// Инициализация
-loadData();
-renderTable();
+// Выход
+document.getElementById('logoutBtn').addEventListener('click', logout);
+
+// ===== СМЕНА ПАРОЛЯ =====
+const modal = document.getElementById('changePasswordModal');
+const modalClose = document.getElementById('modalClose');
+
+document.getElementById('changePasswordBtn').addEventListener('click', function() {
+  modal.style.display = 'flex';
+  document.getElementById('oldPassword').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('confirmPassword').value = '';
+  document.getElementById('changePasswordError').style.display = 'none';
+});
+
+modalClose.addEventListener('click', function() {
+  modal.style.display = 'none';
+});
+
+window.addEventListener('click', function(e) {
+  if (e.target === modal) {
+    modal.style.display = 'none';
+  }
+});
+
+document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const oldPwd = document.getElementById('oldPassword').value;
+  const newPwd = document.getElementById('newPassword').value;
+  const confirmPwd = document.getElementById('confirmPassword').value;
+  const errorDiv = document.getElementById('changePasswordError');
+  errorDiv.style.display = 'none';
+
+  if (newPwd !== confirmPwd) {
+    errorDiv.textContent = 'Новый пароль и подтверждение не совпадают.';
+    errorDiv.style.display = 'block';
+    return;
+  }
+  try {
+    await changePassword(oldPwd, newPwd);
+    alert('Пароль успешно изменён!');
+    modal.style.display = 'none';
+    // Опционально: разлогинить пользователя, чтобы он вошёл с новым паролем
+    logout();
+  } catch (err) {
+    errorDiv.textContent = err.message;
+    errorDiv.style.display = 'block';
+  }
+});
+
+// ===== ИНИЦИАЛИЗАЦИЯ =====
+// При загрузке страницы показываем экран входа
+// Если пароль уже был сохранён, он будет использован.
+// Данные загружаются только после успешного входа.
+// Для удобства, если пользователь уже авторизован (не реализовано, так как сессия не хранится),
+// мы всегда показываем вход.
+// Можно добавить запоминание сессии через localStorage, но для безопасности пусть всегда запрашивает.
+// Если хотите "запомнить" на время сессии, используйте sessionStorage - но при перезагрузке всё равно запросит.
+// Мы оставляем как есть.
