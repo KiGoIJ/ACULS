@@ -273,8 +273,30 @@ body {
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25);
 }
 
-/* ===== ПОИСК (уже есть в фильтрах) ===== */
-/* Стили для поиска перенесены в фильтры */
+/* ===== ПОИСК ===== */
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: #f2f5f9;
+    border-radius: 8px;
+    padding: 4px 12px;
+    margin-bottom: 20px;
+    border: 1px solid #dce3ec;
+}
+.search-bar i {
+    color: #7a8a9e;
+    margin-right: 10px;
+}
+.search-bar input {
+    border: none;
+    background: transparent;
+    padding: 12px 0;
+    width: 100%;
+    font-size: 1rem;
+}
+.search-bar input:focus {
+    outline: none;
+}
 
 /* ===== ТАБЛИЦА ===== */
 .table-responsive {
@@ -339,6 +361,38 @@ table td:last-child {
     background: #fde8e8;
     color: #a12a2a;
 }
+.btn-icon.print {
+    color: #2c6b3c;
+}
+.btn-icon.print:hover {
+    background: #e3f0e7;
+    color: #1a4a2a;
+}
+
+/* ===== ФОТО В ТАБЛИЦЕ ===== */
+.photo-thumb {
+    transition: transform 0.2s;
+    border-radius: 50%;
+}
+.photo-thumb:hover {
+    transform: scale(1.5);
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+/* ===== МОДАЛЬНОЕ ОКНО ДЛЯ ФОТО ===== */
+.photo-modal .modal-content {
+    background: #1a2f44;
+    border: 2px solid #d4af37;
+}
+.photo-modal .modal-close {
+    color: #fff;
+}
+.photo-modal .modal-close:hover {
+    color: #d4af37;
+}
+.photo-modal h4 {
+    color: #fff;
+}
 
 /* ===== ПОДВАЛ ===== */
 .footer {
@@ -351,7 +405,7 @@ table td:last-child {
     font-size: 0.9rem;
 }
 
-/* ===== МОДАЛЬНОЕ ОКНО ===== */
+/* ===== МОДАЛЬНОЕ ОКНО СМЕНЫ ПАРОЛЯ ===== */
 .modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
