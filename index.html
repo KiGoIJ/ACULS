@@ -8,12 +8,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <!-- SheetJS для Excel -->
+    <!-- SheetJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- jsPDF для PDF -->
+    <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- html2canvas (для PDF, если понадобится) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -25,16 +23,24 @@
                 <i class="fas fa-shield-alt"></i>
                 <span>АСУЛС ТУ ФСБ</span>
             </div>
-            <p class="login-sub">Введите пароль для доступа к системе</p>
+            <p class="login-sub">Введите учётные данные</p>
             <form id="loginForm" class="login-form">
                 <div class="form-group">
-                    <label for="passwordInput">Пароль</label>
-                    <input type="password" id="passwordInput" placeholder="••••••••" required autofocus />
+                    <label for="loginFullName">ФИО</label>
+                    <input type="text" id="loginFullName" placeholder="Иванов Иван Иванович" required />
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Личный пароль</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required />
+                </div>
+                <div class="form-group">
+                    <label for="loginMasterPassword">Мастер-пароль (6 цифр)</label>
+                    <input type="password" id="loginMasterPassword" placeholder="••••••" required maxlength="6" />
                 </div>
                 <button type="submit" class="btn btn--gold btn--full"><i class="fas fa-sign-in-alt"></i> Войти</button>
-                <div id="loginError" class="login-error" style="display:none;">Неверный пароль. Попробуйте снова.</div>
+                <div id="loginError" class="login-error" style="display:none;"></div>
             </form>
-            <div class="login-hint">По умолчанию: <strong>admin</strong></div>
+            <div class="login-hint">По умолчанию: ФИО = <strong>Администратор</strong>, пароль = <strong>admin</strong>, мастер-пароль = <strong>123456</strong></div>
         </div>
     </div>
 
@@ -49,14 +55,17 @@
                     <span>АСУЛС ТУ ФСБ</span>
                 </div>
                 <div class="header__actions">
+                    <span id="userDisplay" class="user-display"></span>
                     <button id="changePasswordBtn" class="btn btn--gold"><i class="fas fa-key"></i> Сменить пароль</button>
+                    <button id="manageUsersBtn" class="btn btn--gold" style="display:none;"><i class="fas fa-users-cog"></i> Управление</button>
                     <button id="logoutBtn" class="btn btn--secondary"><i class="fas fa-sign-out-alt"></i> Выйти</button>
-                    <button id="exportExcelBtn" class="btn btn--gold"><i class="fas fa-file-excel"></i> Экспорт Excel</button>
-                    <button id="importExcelBtn" class="btn btn--gold"><i class="fas fa-file-import"></i> Импорт Excel</button>
+                    <button id="exportExcelBtn" class="btn btn--gold"><i class="fas fa-file-excel"></i> Excel</button>
+                    <button id="importExcelBtn" class="btn btn--gold"><i class="fas fa-file-import"></i> Импорт</button>
                     <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none" />
-                    <button id="exportJsonBtn" class="btn btn--gold"><i class="fas fa-file-export"></i> Экспорт JSON</button>
-                    <button id="importJsonBtn" class="btn btn--gold"><i class="fas fa-file-import"></i> Импорт JSON</button>
+                    <button id="exportJsonBtn" class="btn btn--gold"><i class="fas fa-file-export"></i> JSON</button>
+                    <button id="importJsonBtn" class="btn btn--gold"><i class="fas fa-file-import"></i> JSON</button>
                     <input type="file" id="importJsonInput" accept=".json" style="display:none" />
+                    <button id="summaryReportBtn" class="btn btn--gold"><i class="fas fa-print"></i> Сводный отчёт</button>
                 </div>
             </div>
         </header>
@@ -74,7 +83,7 @@
                 </div>
             </section>
 
-            <!-- ФИЛЬТРЫ -->
+            <!-- ФИЛЬТРЫ И УМНЫЙ ПОИСК -->
             <section class="card filter-card">
                 <h2 class="card__title"><i class="fas fa-filter"></i> Фильтры</h2>
                 <div class="filter-grid">
@@ -91,8 +100,20 @@
                         <select id="filterStatus"><option value="">Все</option></select>
                     </div>
                     <div class="form-group">
-                        <label for="searchInput">Поиск по ФИО</label>
-                        <input type="text" id="searchInput" placeholder="Введите ФИО..." />
+                        <label for="searchField">Искать по</label>
+                        <select id="searchField">
+                            <option value="all">Все поля</option>
+                            <option value="fio">ФИО</option>
+                            <option value="department">Подразделение</option>
+                            <option value="rank">Звание</option>
+                            <option value="position">Должность</option>
+                            <option value="status">Статус</option>
+                            <option value="personalNumber">Личный номер</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="searchInput">Поиск</label>
+                        <input type="text" id="searchInput" placeholder="Введите текст..." />
                     </div>
                     <div class="form-group filter-actions">
                         <button id="clearFiltersBtn" class="btn btn--secondary"><i class="fas fa-undo"></i> Сбросить</button>
@@ -100,8 +121,8 @@
                 </div>
             </section>
 
-            <!-- ФОРМА ДОБАВЛЕНИЯ/РЕДАКТИРОВАНИЯ -->
-            <section class="card">
+            <!-- ФОРМА ДОБАВЛЕНИЯ/РЕДАКТИРОВАНИЯ (только для админа) -->
+            <section class="card" id="formCard">
                 <h2 class="card__title"><i class="fas fa-user-plus"></i> Добавить сотрудника</h2>
                 <form id="employeeForm" class="form-grid">
                     <div class="form-group">
@@ -171,7 +192,7 @@
                 </form>
             </section>
 
-            <!-- ТАБЛИЦА СОТРУДНИКОВ -->
+            <!-- ТАБЛИЦА -->
             <section class="card">
                 <h2 class="card__title"><i class="fas fa-users"></i> Список личного состава</h2>
                 <div class="table-responsive">
@@ -195,7 +216,6 @@
             </section>
         </main>
 
-        <!-- ПОДВАЛ -->
         <footer class="footer">
             <div class="container">
                 <p>© 2026 АСУЛС ТУ ФСБ. Все данные хранятся локально.</p>
@@ -224,6 +244,35 @@
                 </div>
                 <button type="submit" class="btn btn--primary"><i class="fas fa-save"></i> Сохранить</button>
                 <div id="changePasswordError" class="login-error" style="display:none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ (только админ) -->
+    <div id="manageUsersModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:500px;">
+            <span class="modal-close" id="manageUsersClose">&times;</span>
+            <h3><i class="fas fa-users-cog"></i> Управление пользователями</h3>
+            <div id="userList" style="margin-bottom:16px;"></div>
+            <form id="addUserForm" style="border-top:1px solid #e9edf2; padding-top:16px;">
+                <h4>Добавить пользователя</h4>
+                <div class="form-group">
+                    <label for="newUserFullName">ФИО</label>
+                    <input type="text" id="newUserFullName" required />
+                </div>
+                <div class="form-group">
+                    <label for="newUserPassword">Пароль</label>
+                    <input type="password" id="newUserPassword" required minlength="4" />
+                </div>
+                <div class="form-group">
+                    <label for="newUserRole">Роль</label>
+                    <select id="newUserRole">
+                        <option value="user">Пользователь</option>
+                        <option value="admin">Администратор</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn--primary"><i class="fas fa-plus"></i> Добавить</button>
+                <div id="addUserError" class="login-error" style="display:none;"></div>
             </form>
         </div>
     </div>
