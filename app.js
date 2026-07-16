@@ -90,12 +90,9 @@ function renderTable() {
       if (!emp) return;
       editingId = id;
       fillForm(emp);
-      const title = document.querySelector('.card__title i');
-      if (title) title.className = 'fas fa-user-edit';
-      const titleText = document.querySelector('.card__title');
-      if (titleText) titleText.childNodes[2].textContent = ' Редактировать сотрудника';
-      const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
-      if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Сохранить';
+      document.querySelector('.card__title i').className = 'fas fa-user-edit';
+      document.querySelector('.card__title').childNodes[2].textContent = ' Редактировать сотрудника';
+      document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Сохранить';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   });
@@ -118,19 +115,89 @@ function fillForm(emp) {
 function resetForm() {
   document.getElementById('employeeForm').reset();
   editingId = null;
-  const title = document.querySelector('.card__title i');
-  if (title) title.className = 'fas fa-user-plus';
-  const titleText = document.querySelector('.card__title');
-  if (titleText) titleText.childNodes[2].textContent = ' Добавить сотрудника';
-  const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
-  if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Добавить';
+  document.querySelector('.card__title i').className = 'fas fa-user-plus';
+  document.querySelector('.card__title').childNodes[2].textContent = ' Добавить сотрудника';
+  document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
 }
 
-// ===== ОБРАБОТЧИКИ (обёрнуты в DOMContentLoaded) =====
+// ===== ОБРАБОТКА ФОРМЫ =====
 document.addEventListener('DOMContentLoaded', function() {
-
-  // Форма сотрудника
+  // Получаем все элементы
+  const loginForm = document.getElementById('loginForm');
+  const loginError = document.getElementById('loginError');
+  const passwordInput = document.getElementById('passwordInput');
+  const logoutBtn = document.getElementById('logoutBtn');
   const employeeForm = document.getElementById('employeeForm');
+  const searchInput = document.getElementById('searchInput');
+  const exportBtn = document.getElementById('exportBtn');
+  const importBtn = document.getElementById('importBtn');
+  const importInput = document.getElementById('importInput');
+  const changePasswordBtn = document.getElementById('changePasswordBtn');
+  const changePasswordModal = document.getElementById('changePasswordModal');
+  const modalClose = document.getElementById('modalClose');
+  const changePasswordForm = document.getElementById('changePasswordForm');
+  const oldPassword = document.getElementById('oldPassword');
+  const newPassword = document.getElementById('newPassword');
+  const confirmPassword = document.getElementById('confirmPassword');
+  const changePasswordError = document.getElementById('changePasswordError');
+
+  // Проверяем наличие элементов и выводим предупреждения, если что-то не найдено
+  if (!loginForm) console.warn('loginForm not found');
+  if (!loginError) console.warn('loginError not found');
+  if (!passwordInput) console.warn('passwordInput not found');
+  if (!logoutBtn) console.warn('logoutBtn not found');
+  if (!employeeForm) console.warn('employeeForm not found');
+  if (!searchInput) console.warn('searchInput not found');
+  if (!exportBtn) console.warn('exportBtn not found');
+  if (!importBtn) console.warn('importBtn not found');
+  if (!importInput) console.warn('importInput not found');
+  if (!changePasswordBtn) console.warn('changePasswordBtn not found');
+  if (!changePasswordModal) console.warn('changePasswordModal not found');
+  if (!modalClose) console.warn('modalClose not found');
+  if (!changePasswordForm) console.warn('changePasswordForm not found');
+  if (!oldPassword) console.warn('oldPassword not found');
+  if (!newPassword) console.warn('newPassword not found');
+  if (!confirmPassword) console.warn('confirmPassword not found');
+  if (!changePasswordError) console.warn('changePasswordError not found');
+
+  // Функция входа
+  function login(password) {
+    if (checkPassword(password)) {
+      isAuthenticated = true;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appContent').style.display = 'block';
+      loadData();
+      renderTable();
+      loginError.style.display = 'none';
+      passwordInput.value = '';
+    } else {
+      loginError.style.display = 'block';
+      passwordInput.value = '';
+      passwordInput.focus();
+    }
+  }
+
+  function logout() {
+    isAuthenticated = false;
+    document.getElementById('appContent').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    passwordInput.value = '';
+    loginError.style.display = 'none';
+  }
+
+  // Обработчики событий
+  if (loginForm) {
+    loginForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const pwd = passwordInput.value;
+      login(pwd);
+    });
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', logout);
+  }
+
   if (employeeForm) {
     employeeForm.addEventListener('submit', function(e) {
       e.preventDefault();
@@ -161,8 +228,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Поиск
-  const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.addEventListener('input', function() {
       const query = this.value.toLowerCase().trim();
@@ -174,8 +239,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Экспорт
-  const exportBtn = document.getElementById('exportBtn');
   if (exportBtn) {
     exportBtn.addEventListener('click', function() {
       const blob = new Blob([JSON.stringify(employees, null, 2)], { type: 'application/json' });
@@ -186,9 +249,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Импорт
-  const importBtn = document.getElementById('importBtn');
-  const importInput = document.getElementById('importInput');
   if (importBtn && importInput) {
     importBtn.addEventListener('click', function() {
       importInput.click();
@@ -215,117 +275,50 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Логин
-  const loginForm = document.getElementById('loginForm');
-  if (loginForm) {
-    loginForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      const pwd = document.getElementById('passwordInput').value;
-      login(pwd);
+  if (changePasswordBtn && changePasswordModal && modalClose && changePasswordForm) {
+    changePasswordBtn.addEventListener('click', function() {
+      changePasswordModal.style.display = 'flex';
+      oldPassword.value = '';
+      newPassword.value = '';
+      confirmPassword.value = '';
+      changePasswordError.style.display = 'none';
     });
-  }
 
-  // Выход
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', logout);
-  }
-
-  // Смена пароля
-  const changePwdBtn = document.getElementById('changePasswordBtn');
-  const modal = document.getElementById('changePasswordModal');
-  const modalClose = document.getElementById('modalClose');
-  const changePwdForm = document.getElementById('changePasswordForm');
-
-  if (changePwdBtn && modal) {
-    changePwdBtn.addEventListener('click', function() {
-      modal.style.display = 'flex';
-      document.getElementById('oldPassword').value = '';
-      document.getElementById('newPassword').value = '';
-      document.getElementById('confirmPassword').value = '';
-      document.getElementById('changePasswordError').style.display = 'none';
-    });
-  }
-
-  if (modalClose && modal) {
     modalClose.addEventListener('click', function() {
-      modal.style.display = 'none';
+      changePasswordModal.style.display = 'none';
     });
-  }
 
-  if (modal) {
     window.addEventListener('click', function(e) {
-      if (e.target === modal) {
-        modal.style.display = 'none';
+      if (e.target === changePasswordModal) {
+        changePasswordModal.style.display = 'none';
       }
     });
-  }
 
-  if (changePwdForm) {
-    changePwdForm.addEventListener('submit', function(e) {
+    changePasswordForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      const oldPwd = document.getElementById('oldPassword').value;
-      const newPwd = document.getElementById('newPassword').value;
-      const confirmPwd = document.getElementById('confirmPassword').value;
-      const errorDiv = document.getElementById('changePasswordError');
-      if (errorDiv) errorDiv.style.display = 'none';
+      const oldPwd = oldPassword.value;
+      const newPwd = newPassword.value;
+      const confirmPwd = confirmPassword.value;
+      changePasswordError.style.display = 'none';
 
       if (newPwd !== confirmPwd) {
-        if (errorDiv) {
-          errorDiv.textContent = 'Новый пароль и подтверждение не совпадают.';
-          errorDiv.style.display = 'block';
-        }
+        changePasswordError.textContent = 'Новый пароль и подтверждение не совпадают.';
+        changePasswordError.style.display = 'block';
         return;
       }
       try {
         changePassword(oldPwd, newPwd);
         alert('Пароль успешно изменён!');
-        if (modal) modal.style.display = 'none';
+        changePasswordModal.style.display = 'none';
         logout(); // выходим, чтобы войти с новым паролем
       } catch (err) {
-        if (errorDiv) {
-          errorDiv.textContent = err.message;
-          errorDiv.style.display = 'block';
-        }
+        changePasswordError.textContent = err.message;
+        changePasswordError.style.display = 'block';
       }
     });
   }
 
-}); // конец DOMContentLoaded
-
-// ===== ФУНКЦИИ АВТОРИЗАЦИИ (вне DOMContentLoaded, чтобы были доступны) =====
-function login(password) {
-  if (checkPassword(password)) {
-    isAuthenticated = true;
-    const loginScreen = document.getElementById('loginScreen');
-    const appContent = document.getElementById('appContent');
-    if (loginScreen) loginScreen.style.display = 'none';
-    if (appContent) appContent.style.display = 'block';
-    loadData();
-    renderTable();
-    const error = document.getElementById('loginError');
-    if (error) error.style.display = 'none';
-    const pwdInput = document.getElementById('passwordInput');
-    if (pwdInput) pwdInput.value = '';
-  } else {
-    const error = document.getElementById('loginError');
-    if (error) error.style.display = 'block';
-    const pwdInput = document.getElementById('passwordInput');
-    if (pwdInput) {
-      pwdInput.value = '';
-      pwdInput.focus();
-    }
-  }
-}
-
-function logout() {
-  isAuthenticated = false;
-  const appContent = document.getElementById('appContent');
-  const loginScreen = document.getElementById('loginScreen');
-  if (appContent) appContent.style.display = 'none';
-  if (loginScreen) loginScreen.style.display = 'flex';
-  const pwdInput = document.getElementById('passwordInput');
-  if (pwdInput) pwdInput.value = '';
-  const error = document.getElementById('loginError');
-  if (error) error.style.display = 'none';
-}
+  // Инициализация: экран входа уже виден, основное скрыто
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('appContent').style.display = 'none';
+});
