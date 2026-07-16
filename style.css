@@ -195,6 +195,45 @@ body {
     color: #d4af37;
 }
 
+/* ===== СТАТИСТИКА ===== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+.stat-item {
+    background: #f8fafc;
+    padding: 16px 20px;
+    border-radius: 8px;
+    border-left: 4px solid #d4af37;
+}
+.stat-label {
+    font-size: 0.9rem;
+    color: #5a6a7a;
+    display: block;
+}
+.stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0b1a2e;
+}
+
+/* ===== ФИЛЬТРЫ ===== */
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+.filter-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.filter-grid .form-group {
+    margin-bottom: 0;
+}
+
 /* ===== ФОРМА ===== */
 .form-grid {
     display: grid;
@@ -234,30 +273,8 @@ body {
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25);
 }
 
-/* ===== ПОИСК ===== */
-.search-bar {
-    display: flex;
-    align-items: center;
-    background: #f2f5f9;
-    border-radius: 8px;
-    padding: 4px 12px;
-    margin-bottom: 20px;
-    border: 1px solid #dce3ec;
-}
-.search-bar i {
-    color: #7a8a9e;
-    margin-right: 10px;
-}
-.search-bar input {
-    border: none;
-    background: transparent;
-    padding: 12px 0;
-    width: 100%;
-    font-size: 1rem;
-}
-.search-bar input:focus {
-    outline: none;
-}
+/* ===== ПОИСК (уже есть в фильтрах) ===== */
+/* Стили для поиска перенесены в фильтры */
 
 /* ===== ТАБЛИЦА ===== */
 .table-responsive {
@@ -394,7 +411,7 @@ table td:last-child {
     .card {
         padding: 20px 16px;
     }
-    .form-grid {
+    .form-grid, .filter-grid, .stats-grid {
         grid-template-columns: 1fr;
     }
     table td:last-child {
