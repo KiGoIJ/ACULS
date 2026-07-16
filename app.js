@@ -1,44 +1,35 @@
-// ===== УПРАВЛЕНИЕ ПАРОЛЕМ =====
-const PASSWORD_HASH_KEY = 'asuls_password_hash';
+// ===== УПРАВЛЕНИЕ ПАРОЛЕМ (простая версия) =====
+const PASSWORD_KEY = 'asuls_password_plain';
 const DEFAULT_PASSWORD = 'admin';
 
-// Хеширование пароля (SHA-256)
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Получить сохранённый хеш, если нет - установить по умолчанию
-async function getStoredPasswordHash() {
-  let stored = localStorage.getItem(PASSWORD_HASH_KEY);
+function getStoredPassword() {
+  let stored = localStorage.getItem(PASSWORD_KEY);
   if (!stored) {
-    const defaultHash = await hashPassword(DEFAULT_PASSWORD);
-    localStorage.setItem(PASSWORD_HASH_KEY, defaultHash);
-    return defaultHash;
+    const encoded = btoa(DEFAULT_PASSWORD);
+    localStorage.setItem(PASSWORD_KEY, encoded);
+    return DEFAULT_PASSWORD;
   }
-  return stored;
+  try {
+    return atob(stored);
+  } catch {
+    const encoded = btoa(DEFAULT_PASSWORD);
+    localStorage.setItem(PASSWORD_KEY, encoded);
+    return DEFAULT_PASSWORD;
+  }
 }
 
-// Проверка введённого пароля
-async function checkPassword(input) {
-  const storedHash = await getStoredPasswordHash();
-  const inputHash = await hashPassword(input);
-  return inputHash === storedHash;
+function checkPassword(input) {
+  return input === getStoredPassword();
 }
 
-// Смена пароля
-async function changePassword(oldPwd, newPwd) {
-  if (!(await checkPassword(oldPwd))) {
+function changePassword(oldPwd, newPwd) {
+  if (!checkPassword(oldPwd)) {
     throw new Error('Неверный старый пароль');
   }
   if (newPwd.length < 4) {
     throw new Error('Новый пароль должен содержать не менее 4 символов');
   }
-  const newHash = await hashPassword(newPwd);
-  localStorage.setItem(PASSWORD_HASH_KEY, newHash);
+  localStorage.setItem(PASSWORD_KEY, btoa(newPwd));
 }
 
 // ===== СОСТОЯНИЕ АВТОРИЗАЦИИ =====
@@ -80,7 +71,6 @@ function renderTable() {
     tbody.appendChild(tr);
   });
 
-  // Обработчики удаления
   document.querySelectorAll('.delete').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const id = e.currentTarget.dataset.id;
@@ -92,7 +82,6 @@ function renderTable() {
     });
   });
 
-  // Обработчики редактирования
   document.querySelectorAll('.edit').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const id = e.currentTarget.dataset.id;
@@ -108,7 +97,6 @@ function renderTable() {
   });
 }
 
-// ===== ЗАПОЛНЕНИЕ ФОРМЫ =====
 function fillForm(emp) {
   document.getElementById('lastName').value = emp.lastName || '';
   document.getElementById('firstName').value = emp.firstName || '';
@@ -123,7 +111,6 @@ function fillForm(emp) {
   document.getElementById('status').value = emp.status || 'действует';
 }
 
-// ===== СБРОС ФОРМЫ (после сохранения) =====
 function resetForm() {
   document.getElementById('employeeForm').reset();
   editingId = null;
@@ -132,7 +119,7 @@ function resetForm() {
   document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
 }
 
-// ===== ОБРАБОТКА ОТПРАВКИ ФОРМЫ =====
+// ===== ОБРАБОТКА ФОРМЫ =====
 document.getElementById('employeeForm').addEventListener('submit', function(e) {
   e.preventDefault();
   const newEmp = {
@@ -205,13 +192,11 @@ document.getElementById('importInput').addEventListener('change', function(e) {
 });
 
 // ===== АВТОРИЗАЦИЯ =====
-async function login(password) {
-  const ok = await checkPassword(password);
-  if (ok) {
+function login(password) {
+  if (checkPassword(password)) {
     isAuthenticated = true;
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appContent').style.display = 'block';
-    // Загружаем данные и отрисовываем
     loadData();
     renderTable();
     document.getElementById('loginError').style.display = 'none';
@@ -231,14 +216,12 @@ function logout() {
   document.getElementById('loginError').style.display = 'none';
 }
 
-// Обработчик формы входа
 document.getElementById('loginForm').addEventListener('submit', function(e) {
   e.preventDefault();
   const pwd = document.getElementById('passwordInput').value;
   login(pwd);
 });
 
-// Выход
 document.getElementById('logoutBtn').addEventListener('click', logout);
 
 // ===== СМЕНА ПАРОЛЯ =====
@@ -263,7 +246,7 @@ window.addEventListener('click', function(e) {
   }
 });
 
-document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
   e.preventDefault();
   const oldPwd = document.getElementById('oldPassword').value;
   const newPwd = document.getElementById('newPassword').value;
@@ -277,11 +260,10 @@ document.getElementById('changePasswordForm').addEventListener('submit', async f
     return;
   }
   try {
-    await changePassword(oldPwd, newPwd);
+    changePassword(oldPwd, newPwd);
     alert('Пароль успешно изменён!');
     modal.style.display = 'none';
-    // Опционально: разлогинить пользователя, чтобы он вошёл с новым паролем
-    logout();
+    logout(); // выходим, чтобы войти с новым паролем
   } catch (err) {
     errorDiv.textContent = err.message;
     errorDiv.style.display = 'block';
@@ -289,11 +271,4 @@ document.getElementById('changePasswordForm').addEventListener('submit', async f
 });
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
-// При загрузке страницы показываем экран входа
-// Если пароль уже был сохранён, он будет использован.
-// Данные загружаются только после успешного входа.
-// Для удобства, если пользователь уже авторизован (не реализовано, так как сессия не хранится),
-// мы всегда показываем вход.
-// Можно добавить запоминание сессии через localStorage, но для безопасности пусть всегда запрашивает.
-// Если хотите "запомнить" на время сессии, используйте sessionStorage - но при перезагрузке всё равно запросит.
-// Мы оставляем как есть.
+// При загрузке показываем экран входа (он уже виден по умолчанию)
