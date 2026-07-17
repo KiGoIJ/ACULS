@@ -688,11 +688,10 @@ table td {
     word-break: break-word;     /* разрыв при необходимости */
 }
 /* Ширины колонок (подберите под свои данные) */
-table th:nth-child(1), table td:nth-child(1) { width: 40px; }  /* чекбокс */
-table th:nth-child(2), table td:nth-child(2) { width: 60px; }  /* фото */
+table th:nth-child(1), table td:nth-child(1) { width: 30px; }  /* чекбокс */
 table th:nth-child(3), table td:nth-child(3) { width: 20%; }   /* ФИО */
 table th:nth-child(4), table td:nth-child(4) { width: 18%; }   /* подразделение */
 table th:nth-child(5), table td:nth-child(5) { width: 15%; }   /* звание */
 table th:nth-child(6), table td:nth-child(6) { width: 15%; }   /* должность */
-table th:nth-child(7), table td:nth-child(7) { width: 12%; }   /* статус */
-table th:nth-child(8), table td:nth-child(8) { width: 20%; }   /* действия */
+table th:nth-child(7), table td:nth-child(7) { width: 25%; }   /* статус */
+table th:nth-child(8), table td:nth-child(8) { width: 10%; }   /* действия */
