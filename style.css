@@ -658,3 +658,41 @@ table td:first-child input[type="checkbox"] {
     background: #dce3ed;
     cursor: default;
 }
+
+/* ===== TABLE ===== */
+.table-responsive {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    table-layout: fixed; /* важно для принудительного переноса */
+}
+table thead {
+    background: #1a2f44;
+    color: #fff;
+}
+table th {
+    padding: 14px 12px;
+    text-align: left;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+table td {
+    padding: 12px 12px;
+    border-bottom: 1px solid #e9edf2;
+    vertical-align: middle;
+    word-wrap: break-word;      /* перенос длинных слов */
+    white-space: normal;        /* разрешаем перенос строк */
+    word-break: break-word;     /* разрыв при необходимости */
+}
+/* Ширины колонок (подберите под свои данные) */
+table th:nth-child(1), table td:nth-child(1) { width: 40px; }  /* чекбокс */
+table th:nth-child(2), table td:nth-child(2) { width: 60px; }  /* фото */
+table th:nth-child(3), table td:nth-child(3) { width: 20%; }   /* ФИО */
+table th:nth-child(4), table td:nth-child(4) { width: 18%; }   /* подразделение */
+table th:nth-child(5), table td:nth-child(5) { width: 15%; }   /* звание */
+table th:nth-child(6), table td:nth-child(6) { width: 15%; }   /* должность */
+table th:nth-child(7), table td:nth-child(7) { width: 12%; }   /* статус */
+table th:nth-child(8), table td:nth-child(8) { width: 20%; }   /* действия */
