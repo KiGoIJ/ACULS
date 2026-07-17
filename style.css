@@ -238,14 +238,19 @@ body {
 /* ===== ФИЛЬТРЫ ===== */
 .filter-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 16px;
-    align-items: end;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px 20px;
+    margin-bottom: 16px;
 }
 .filter-actions {
     display: flex;
-    gap: 8px;
-    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #e9edf2;
+}
+.filter-actions .btn {
+    flex: 0 0 auto;
 }
 .filter-grid .form-group {
     margin-bottom: 0;
@@ -289,7 +294,6 @@ body {
     border-color: #d4af37;
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25);
 }
-/* Валидация */
 .form-group input.error {
     border-color: #b33c3c !important;
     box-shadow: 0 0 0 3px rgba(179, 60, 60, 0.2) !important;
@@ -342,7 +346,6 @@ table td:last-child {
     gap: 8px;
     flex-wrap: wrap;
 }
-/* Чекбоксы в таблице */
 table td:first-child {
     width: 40px;
     text-align: center;
@@ -548,7 +551,13 @@ table td:first-child input[type="checkbox"] {
     .card {
         padding: 20px 16px;
     }
-    .form-grid, .filter-grid, .stats-grid {
+    .filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    .stats-grid {
         grid-template-columns: 1fr;
     }
     table td:last-child {
@@ -564,5 +573,12 @@ table td:first-child input[type="checkbox"] {
     }
     .card__title label {
         margin-left: 0 !important;
+    }
+    .filter-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-actions .btn {
+        justify-content: center;
     }
 }
