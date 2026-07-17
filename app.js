@@ -557,9 +557,28 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== ОБНОВЛЁННЫЕ ФУНКЦИИ PDF (с временным DOM-контейнером) =====
+// ===== ОТЧЁТЫ (PDF) — ТОЛЬКО jsPDF, БЕЗ html2pdf =====
 function generateReport(emp) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
     const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+    
+    // Заголовок
+    doc.setFont('times', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor('#0b1a2e');
+    doc.text('ОТЧЁТ О СОТРУДНИКЕ', 105, 20, { align: 'center' });
+    
+    // Линия
+    doc.setDrawColor(212, 175, 55);
+    doc.line(20, 25, 190, 25);
+    
+    let y = 35;
+    doc.setFont('times', 'normal');
+    doc.setFontSize(12);
+    doc.setTextColor('#000000');
+    
+    // Данные
     const fields = [
         ['ФИО', fio],
         ['Дата рождения', emp.birthDate || '—'],
@@ -579,66 +598,32 @@ function generateReport(emp) {
         ['Резолюция', emp.resolution || '—'],
         ['Отметки', emp.marks || '—']
     ];
-
-    let rowsHtml = fields.map(([label, value]) => `
-        <tr>
-            <td style="font-weight:bold; padding:6px 12px; border-bottom:1px solid #ddd; width:35%;">${label}</td>
-            <td style="padding:6px 12px; border-bottom:1px solid #ddd; word-wrap:break-word;">${value}</td>
-        </tr>
-    `).join('');
-
-    let photoHtml = '';
-    if (emp.photo && emp.photo.length > 100) {
-        photoHtml = `<div style="text-align:center; margin-bottom:16px;"><img src="${emp.photo}" style="max-width:150px; max-height:200px; border:2px solid #d4af37; border-radius:8px;" /></div>`;
-    }
-
-    const htmlContent = `
-        <div style="font-family: 'Times New Roman', Times, serif; max-width: 700px; margin:0 auto; padding:20px;">
-            <h2 style="text-align:center; color:#0b1a2e; border-bottom:3px solid #d4af37; padding-bottom:8px;">ОТЧЁТ О СОТРУДНИКЕ</h2>
-            ${photoHtml}
-            <table style="width:100%; border-collapse:collapse; font-size:14px; table-layout:fixed;">
-                <colgroup>
-                    <col style="width:35%;">
-                    <col style="width:65%;">
-                </colgroup>
-                <tbody>
-                    ${rowsHtml}
-                </tbody>
-            </table>
-            <div style="margin-top:30px; text-align:center; color:#7a8a9e; font-size:12px; border-top:1px solid #ddd; padding-top:12px;">
-                Сформировано в АСУЛС ТУ ФСБ<br>
-                ${new Date().toLocaleDateString()}
-            </div>
-        </div>
-    `;
-
-    // Создаём временный контейнер
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '-9999px';
-    container.style.width = '700px';
-    container.style.background = 'white';
-    container.style.padding = '20px';
-    container.style.zIndex = '-1';
-    container.innerHTML = htmlContent;
-    document.body.appendChild(container);
-
-    const opt = {
-        margin:        [10, 10],
-        filename:      `Отчёт_${emp.lastName}_${emp.firstName}.pdf`,
-        image:         { type: 'jpeg', quality: 0.98 },
-        html2canvas:   { scale: 2, letterRendering: true, useCORS: true },
-        jsPDF:         { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().set(opt).from(container).save().then(() => {
-        document.body.removeChild(container);
-    }).catch((err) => {
-        console.error(err);
-        document.body.removeChild(container);
-        alert('Ошибка при создании PDF. Пожалуйста, проверьте консоль.');
+    
+    fields.forEach(([label, value]) => {
+        // Проверяем, не вышли ли за пределы страницы
+        if (y > 270) {
+            doc.addPage();
+            y = 20;
+        }
+        doc.setFont('times', 'bold');
+        doc.text(label + ':', 20, y);
+        doc.setFont('times', 'normal');
+        const maxWidth = 130;
+        const lines = doc.splitTextToSize(value, maxWidth);
+        doc.text(lines, 65, y);
+        y += 10 * lines.length;
+        // Небольшой отступ между полями
+        y += 2;
     });
+    
+    // Подвал
+    doc.setFont('times', 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor('#7a8a9e');
+    doc.text('Сформировано в АСУЛС ТУ ФСБ', 105, 285, { align: 'center' });
+    doc.text(new Date().toLocaleDateString(), 105, 290, { align: 'center' });
+    
+    doc.save(`Отчёт_${emp.lastName}_${emp.firstName}.pdf`);
 }
 
 function printEmployeeCard(emp) {
@@ -650,80 +635,79 @@ function generateSummaryReport() {
         alert('Нет данных для отчёта');
         return;
     }
-
-    let rowsHtml = filteredEmployees.map((emp, idx) => {
-        const status = emp.status || '';
-        return `
-        <tr>
-            <td style="text-align:center; padding:6px 8px; border-bottom:1px solid #ddd;">${idx+1}</td>
-            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}</td>
-            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.department || ''}</td>
-            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.rank || ''}</td>
-            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.position || ''}</td>
-            <td style="padding:6px 8px; border-bottom:1px solid #ddd; white-space:nowrap;">${status}</td>
-        </tr>`;
-    }).join('');
-
-    const htmlContent = `
-        <div style="font-family: 'Times New Roman', Times, serif; max-width: 1100px; margin:0 auto; padding:20px;">
-            <h2 style="text-align:center; color:#0b1a2e; border-bottom:3px solid #d4af37; padding-bottom:8px;">СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ ТУ ФСБ</h2>
-            <p style="text-align:center; color:#5a6a7a; margin-bottom:20px;">Всего сотрудников: ${filteredEmployees.length}</p>
-            <table style="width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed;">
-                <colgroup>
-                    <col style="width:6%;">
-                    <col style="width:32%;">
-                    <col style="width:18%;">
-                    <col style="width:14%;">
-                    <col style="width:18%;">
-                    <col style="width:12%;">
-                </colgroup>
-                <thead>
-                    <tr style="background:#1a2f44; color:#fff;">
-                        <th style="padding:8px 10px; text-align:center;">№</th>
-                        <th style="padding:8px 10px; text-align:left;">ФИО</th>
-                        <th style="padding:8px 10px; text-align:left;">Подразделение</th>
-                        <th style="padding:8px 10px; text-align:left;">Звание</th>
-                        <th style="padding:8px 10px; text-align:left;">Должность</th>
-                        <th style="padding:8px 10px; text-align:left;">Статус</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rowsHtml}
-                </tbody>
-            </table>
-            <div style="margin-top:30px; text-align:center; color:#7a8a9e; font-size:12px; border-top:1px solid #ddd; padding-top:12px;">
-                Сформировано в АСУЛС ТУ ФСБ<br>
-                ${new Date().toLocaleDateString()}
-            </div>
-        </div>
-    `;
-
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '-9999px';
-    container.style.width = '1100px';
-    container.style.background = 'white';
-    container.style.padding = '20px';
-    container.style.zIndex = '-1';
-    container.innerHTML = htmlContent;
-    document.body.appendChild(container);
-
-    const opt = {
-        margin:        [10, 10],
-        filename:      'Сводный_отчёт_ТУ_ФСБ.pdf',
-        image:         { type: 'jpeg', quality: 0.98 },
-        html2canvas:   { scale: 2, letterRendering: true, useCORS: true },
-        jsPDF:         { unit: 'mm', format: 'a4', orientation: 'landscape' }
-    };
-
-    html2pdf().set(opt).from(container).save().then(() => {
-        document.body.removeChild(container);
-    }).catch((err) => {
-        console.error(err);
-        document.body.removeChild(container);
-        alert('Ошибка при создании PDF. Пожалуйста, проверьте консоль.');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('landscape', 'mm', 'a4');
+    
+    doc.setFont('times', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor('#0b1a2e');
+    doc.text('СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ ТУ ФСБ', 148, 15, { align: 'center' });
+    doc.setDrawColor(212, 175, 55);
+    doc.line(20, 20, 276, 20);
+    
+    // Заголовки таблицы
+    const headers = ['№', 'ФИО', 'Подразделение', 'Звание', 'Должность', 'Статус'];
+    const colWidths = [10, 60, 40, 30, 40, 30];
+    let x = 20;
+    let y = 28;
+    doc.setFillColor(26, 47, 68);
+    doc.rect(20, y-6, 256, 8, 'F');
+    doc.setFont('times', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor('#ffffff');
+    headers.forEach((h, i) => {
+        doc.text(h, x + (i === 0 ? 0 : 2), y);
+        x += colWidths[i];
     });
+    
+    doc.setFont('times', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor('#000000');
+    y += 8;
+    
+    filteredEmployees.forEach((emp, idx) => {
+        const row = [
+            (idx+1).toString(),
+            `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim(),
+            emp.department || '',
+            emp.rank || '',
+            emp.position || '',
+            emp.status || ''
+        ];
+        let x2 = 20;
+        row.forEach((cell, i) => {
+            const lines = doc.splitTextToSize(cell, colWidths[i] - 2);
+            doc.text(lines, x2 + 2, y);
+            x2 += colWidths[i];
+        });
+        y += 6;
+        if (y > 190) {
+            doc.addPage();
+            y = 20;
+            // повтор заголовков на новой странице
+            doc.setFillColor(26, 47, 68);
+            doc.rect(20, y-6, 256, 8, 'F');
+            doc.setFont('times', 'bold');
+            doc.setFontSize(11);
+            doc.setTextColor('#ffffff');
+            let xh = 20;
+            headers.forEach((h, i) => {
+                doc.text(h, xh + (i === 0 ? 0 : 2), y);
+                xh += colWidths[i];
+            });
+            doc.setFont('times', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor('#000000');
+            y += 8;
+        }
+    });
+    
+    doc.setFont('times', 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor('#7a8a9e');
+    doc.text(`Всего: ${filteredEmployees.length} сотрудников`, 20, y+10);
+    doc.text(`Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, 148, y+10, { align: 'center' });
+    doc.save('Сводный_отчёт_ТУ_ФСБ.pdf');
 }
 
 // ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
