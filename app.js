@@ -167,7 +167,6 @@ function populateFilterOptions() {
     populateSelect('filterDepartment', deptSet);
     populateSelect('filterRank', rankSet);
     populateSelect('filterStatus', statusSet);
-    // datalist для формы
     populateDatalist('deptList', deptSet);
     populateDatalist('rankList', rankSet);
     const posSet = new Set();
@@ -200,11 +199,10 @@ function populateDatalist(id, values) {
     });
 }
 
-// ===== СТАТИСТИКА С КРАСИВЫМИ ТЕГАМИ =====
+// ===== СТАТИСТИКА С ТЕГАМИ =====
 function updateStats(list) {
     document.getElementById('totalCount').textContent = list.length;
 
-    // Подразделения
     const deptCount = {};
     list.forEach(emp => {
         const d = emp.department || 'Не указано';
@@ -215,7 +213,6 @@ function updateStats(list) {
         .join(' ');
     document.getElementById('deptStats').innerHTML = deptHtml || '—';
 
-    // Звания
     const rankCount = {};
     list.forEach(emp => {
         const r = emp.rank || 'Не указано';
@@ -226,7 +223,6 @@ function updateStats(list) {
         .join(' ');
     document.getElementById('rankStats').innerHTML = rankHtml || '—';
 
-    // Статусы
     const statusCount = {};
     list.forEach(emp => {
         const s = emp.status || 'Не указано';
@@ -270,7 +266,6 @@ function renderTable(data) {
         tbody.appendChild(tr);
     });
 
-    // Обработчики для админа
     if (isAdmin) {
         document.querySelectorAll('.delete').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -316,7 +311,6 @@ function renderTable(data) {
         }
     }
 
-    // Обработчики для всех
     document.querySelectorAll('.print').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.currentTarget.dataset.id;
@@ -340,14 +334,12 @@ function renderTable(data) {
     });
 }
 
-// ===== ОБНОВЛЕНИЕ СЧЁТЧИКА ВЫБРАННЫХ =====
 function updateSelectedCount() {
     const checked = document.querySelectorAll('.row-checkbox:checked').length;
     const el = document.getElementById('selectedCount');
     if (el) el.textContent = `Выбрано: ${checked}`;
 }
 
-// ===== КОПИРОВАНИЕ =====
 function copyEmployee(emp) {
     editingId = null;
     fillForm(emp);
@@ -359,7 +351,6 @@ function copyEmployee(emp) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ===== ФОРМА =====
 function fillForm(emp) {
     const fields = ['lastName', 'firstName', 'patronymic', 'birthDate', 'department', 'rank', 'position', 'personalNumber', 'hireDate', 'alias', 'notes', 'resolution', 'marks'];
     fields.forEach(f => {
@@ -408,7 +399,6 @@ function resetForm() {
     document.getElementById('gender').value = 'мужской';
 }
 
-// ===== ОБРАБОТКА ФОРМЫ =====
 function handleFormSubmit(e) {
     e.preventDefault();
     if (!isAdmin) return;
@@ -473,7 +463,6 @@ function handleFormSubmit(e) {
     alert('Сотрудник сохранён');
 }
 
-// ===== ГРУППОВОЕ ДЕЙСТВИЕ =====
 function initGroupAction() {
     const applyBtn = document.getElementById('groupActionApplyBtn');
     if (!applyBtn) return;
@@ -551,7 +540,6 @@ function initGroupAction() {
     });
 }
 
-// ===== МОДАЛЬНОЕ ОКНО ДЛЯ ФОТО =====
 function showPhotoModal(src, name) {
     const modal = document.createElement('div');
     modal.className = 'modal photo-modal';
@@ -569,10 +557,8 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== ГЕНЕРАТОР ОТЧЁТОВ (PDF) =====
+// ===== НОВЫЕ ФУНКЦИИ ОТЧЁТОВ (через html2pdf) =====
 function generateReport(emp) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
     const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
     const fields = [
         ['ФИО', fio],
@@ -593,73 +579,100 @@ function generateReport(emp) {
         ['Резолюция', emp.resolution || '—'],
         ['Отметки', emp.marks || '—']
     ];
-    doc.setFontSize(18);
-    doc.setTextColor('#0b1a2e');
-    doc.text('ОТЧЁТ О СОТРУДНИКЕ', 105, 20, { align: 'center' });
-    doc.setDrawColor(212, 175, 55);
-    doc.line(20, 25, 190, 25);
+
+    let rowsHtml = fields.map(([label, value]) => `
+        <tr>
+            <td style="font-weight:bold; padding:6px 12px; border-bottom:1px solid #ddd;">${label}</td>
+            <td style="padding:6px 12px; border-bottom:1px solid #ddd;">${value}</td>
+        </tr>
+    `).join('');
+
+    let photoHtml = '';
     if (emp.photo && emp.photo.length > 100) {
-        try { doc.addImage(emp.photo, 'JPEG', 150, 35, 40, 50); } catch(e) {}
+        photoHtml = `<div style="text-align:center; margin-bottom:16px;"><img src="${emp.photo}" style="max-width:150px; max-height:200px; border:2px solid #d4af37; border-radius:8px;" /></div>`;
     }
-    let y = 35;
-    doc.setFontSize(12);
-    fields.forEach(([label, value]) => {
-        doc.setTextColor('#1a2f44');
-        doc.text(label + ':', 25, y);
-        doc.setTextColor('#000');
-        doc.text(value, 70, y);
-        y += 10;
-    });
-    doc.setFontSize(10);
-    doc.setTextColor('#7a8a9e');
-    doc.text('Сформировано в АСУЛС ТУ ФСБ', 105, 280, { align: 'center' });
-    doc.text(new Date().toLocaleDateString(), 105, 285, { align: 'center' });
-    doc.save(`Отчёт_${emp.lastName}_${emp.firstName}.pdf`);
+
+    const htmlContent = `
+        <div style="font-family: 'Times New Roman', Times, serif; max-width: 700px; margin:0 auto; padding:20px;">
+            <h2 style="text-align:center; color:#0b1a2e; border-bottom:3px solid #d4af37; padding-bottom:8px;">ОТЧЁТ О СОТРУДНИКЕ</h2>
+            ${photoHtml}
+            <table style="width:100%; border-collapse:collapse; font-size:14px;">
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+            </table>
+            <div style="margin-top:30px; text-align:center; color:#7a8a9e; font-size:12px; border-top:1px solid #ddd; padding-top:12px;">
+                Сформировано в АСУЛС ТУ ФСБ<br>
+                ${new Date().toLocaleDateString()}
+            </div>
+        </div>
+    `;
+
+    const opt = {
+        margin:        [10, 10],
+        filename:      `Отчёт_${emp.lastName}_${emp.firstName}.pdf`,
+        image:         { type: 'jpeg', quality: 0.98 },
+        html2canvas:   { scale: 2, letterRendering: true },
+        jsPDF:         { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(htmlContent).save();
 }
 
 function printEmployeeCard(emp) {
     generateReport(emp);
 }
 
-// ===== СВОДНЫЙ ОТЧЁТ =====
 function generateSummaryReport() {
     if (filteredEmployees.length === 0) {
         alert('Нет данных для отчёта');
         return;
     }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('landscape', 'mm', 'a4');
-    doc.setFontSize(16);
-    doc.setTextColor('#0b1a2e');
-    doc.text('СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ ТУ ФСБ', 148, 15, { align: 'center' });
-    doc.setDrawColor(212, 175, 55);
-    doc.line(20, 20, 276, 20);
-    const headers = ['№', 'ФИО', 'Подразделение', 'Звание', 'Должность', 'Статус'];
-    const rows = filteredEmployees.map((emp, idx) => [
-        (idx+1).toString(),
-        `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim(),
-        emp.department || '',
-        emp.rank || '',
-        emp.position || '',
-        emp.status || ''
-    ]);
-    doc.setFontSize(10);
-    let y = 28;
-    doc.setFillColor(26, 47, 68);
-    doc.setTextColor(255,255,255);
-    headers.forEach((h,i) => doc.text(h, 20 + i*37, y));
-    doc.setTextColor(0,0,0);
-    y += 6;
-    rows.forEach(row => {
-        row.forEach((cell,i) => doc.text(cell, 20 + i*37, y));
-        y += 6;
-        if (y > 190) { doc.addPage(); y = 20; }
-    });
-    doc.setFontSize(10);
-    doc.setTextColor('#7a8a9e');
-    doc.text(`Всего: ${filteredEmployees.length} сотрудников`, 20, y+10);
-    doc.text(`Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, 148, y+10, { align: 'center' });
-    doc.save('Сводный_отчёт_ТУ_ФСБ.pdf');
+
+    let rowsHtml = filteredEmployees.map((emp, idx) => `
+        <tr>
+            <td style="padding:6px 10px; border-bottom:1px solid #ddd; text-align:center;">${idx+1}</td>
+            <td style="padding:6px 10px; border-bottom:1px solid #ddd;">${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}</td>
+            <td style="padding:6px 10px; border-bottom:1px solid #ddd;">${emp.department || ''}</td>
+            <td style="padding:6px 10px; border-bottom:1px solid #ddd;">${emp.rank || ''}</td>
+            <td style="padding:6px 10px; border-bottom:1px solid #ddd;">${emp.position || ''}</td>
+            <td style="padding:6px 10px; border-bottom:1px solid #ddd;">${emp.status || ''}</td>
+        </tr>
+    `).join('');
+
+    const htmlContent = `
+        <div style="font-family: 'Times New Roman', Times, serif; max-width: 1100px; margin:0 auto; padding:20px;">
+            <h2 style="text-align:center; color:#0b1a2e; border-bottom:3px solid #d4af37; padding-bottom:8px;">СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ ТУ ФСБ</h2>
+            <p style="text-align:center; color:#5a6a7a; margin-bottom:20px;">Всего сотрудников: ${filteredEmployees.length}</p>
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead>
+                    <tr style="background:#1a2f44; color:#fff;">
+                        <th style="padding:8px 12px; text-align:center;">№</th>
+                        <th style="padding:8px 12px; text-align:left;">ФИО</th>
+                        <th style="padding:8px 12px; text-align:left;">Подразделение</th>
+                        <th style="padding:8px 12px; text-align:left;">Звание</th>
+                        <th style="padding:8px 12px; text-align:left;">Должность</th>
+                        <th style="padding:8px 12px; text-align:left;">Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+            </table>
+            <div style="margin-top:30px; text-align:center; color:#7a8a9e; font-size:12px; border-top:1px solid #ddd; padding-top:12px;">
+                Сформировано в АСУЛС ТУ ФСБ<br>
+                ${new Date().toLocaleDateString()}
+            </div>
+        </div>
+    `;
+
+    const opt = {
+        margin:        [10, 10],
+        filename:      'Сводный_отчёт_ТУ_ФСБ.pdf',
+        image:         { type: 'jpeg', quality: 0.98 },
+        html2canvas:   { scale: 2, letterRendering: true },
+        jsPDF:         { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+    html2pdf().set(opt).from(htmlContent).save();
 }
 
 // ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
@@ -830,7 +843,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     logoutBtn.addEventListener('click', logout);
 
-    // Фильтры
     const filterFields = [filterDepartment, filterRank, filterStatus, searchField, searchInput];
     filterFields.forEach(field => {
         if (field) {
@@ -847,7 +859,6 @@ document.addEventListener('DOMContentLoaded', function() {
         applyFilters();
     });
 
-    // Экспорт/импорт
     exportExcelBtn.addEventListener('click', exportToExcel);
     importExcelBtn.addEventListener('click', () => importExcelInput.click());
     importExcelInput.addEventListener('change', function(e) {
@@ -888,10 +899,8 @@ document.addEventListener('DOMContentLoaded', function() {
         this.value = '';
     });
 
-    // Сводный отчёт
     summaryReportBtn.addEventListener('click', generateSummaryReport);
 
-    // Смена пароля
     changePasswordBtn.addEventListener('click', function() {
         changePasswordModal.style.display = 'flex';
         oldPassword.value = '';
@@ -938,7 +947,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Управление пользователями
     manageUsersBtn.addEventListener('click', function() {
         if (!isAdmin) return;
         renderUserList();
@@ -1002,17 +1010,14 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Пользователь добавлен');
     });
 
-    // ===== Обработчики для формы =====
     employeeForm.addEventListener('submit', handleFormSubmit);
 
-    // Валидация в реальном времени
     document.addEventListener('input', function(e) {
         if (e.target.matches('#lastName, #firstName, #personalNumber')) {
             validateField(e.target);
         }
     });
 
-    // Автозаполнение по подразделению
     document.getElementById('department').addEventListener('change', function() {
         const dept = this.value;
         if (!dept) return;
@@ -1032,14 +1037,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!posField.value) posField.value = mostPos;
     });
 
-    // Быстрый режим
     document.getElementById('quickModeCheck').addEventListener('change', function() {
         document.querySelectorAll('.extended-fields').forEach(el => {
             el.style.display = this.checked ? 'none' : 'flex';
         });
     });
 
-    // Предпросмотр фото
     document.addEventListener('change', function(e) {
         if (e.target && e.target.id === 'photo') {
             const file = e.target.files[0];
@@ -1061,10 +1064,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Групповые действия
     initGroupAction();
 
-    // Начальное состояние
     loginScreen.style.display = 'flex';
     appContent.style.display = 'none';
 });
