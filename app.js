@@ -47,7 +47,7 @@ function authenticate(fullName, password, masterPassword) {
 // ===== СОСТОЯНИЕ =====
 let currentUser = null;
 let isAdmin = false;
-const STORAGE_KEY = 'asuls_usb_data';
+const STORAGE_KEY = 'asuls_tu_data';
 let employees = [];
 let editingId = null;
 let filteredEmployees = [];
@@ -82,7 +82,7 @@ function validateField(input) {
     const msg = input.nextElementSibling;
     let valid = true;
     let errorText = '';
-    if (id === 'lastName' || id === 'firstName' || id === 'alias') {
+    if (id === 'lastName' || id === 'firstName') {
         if (!value) {
             valid = false;
             errorText = 'Поле обязательно';
@@ -111,7 +111,6 @@ function validateField(input) {
 function applyFilters() {
     const dept = document.getElementById('filterDepartment').value;
     const rank = document.getElementById('filterRank').value;
-    const dop = document.getElementById('filterDop').value;
     const status = document.getElementById('filterStatus').value;
     const searchField = document.getElementById('searchField').value;
     const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -120,32 +119,27 @@ function applyFilters() {
         let match = true;
         if (dept && emp.department !== dept) match = false;
         if (rank && emp.rank !== rank) match = false;
-        if (dop && emp.dop !== dop) match = false;
         if (status && emp.status !== status) match = false;
         if (searchText) {
             const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.toLowerCase();
             let fieldMatch = false;
             if (searchField === 'all') {
                 fieldMatch = fio.includes(searchText) ||
-                             (emp.alias || '').toLowerCase().includes(searchText) ||
                              (emp.department || '').toLowerCase().includes(searchText) ||
                              (emp.rank || '').toLowerCase().includes(searchText) ||
                              (emp.position || '').toLowerCase().includes(searchText) ||
-                             (emp.dop || '').toLowerCase().includes(searchText) ||
                              (emp.status || '').toLowerCase().includes(searchText) ||
-                             (emp.personalNumber || '').toLowerCase().includes(searchText);
+                             (emp.personalNumber || '').toLowerCase().includes(searchText) ||
+                             (emp.alias || '').toLowerCase().includes(searchText) ||
+                             (emp.dop || '').toLowerCase().includes(searchText);
             } else if (searchField === 'fio') {
                 fieldMatch = fio.includes(searchText);
-            } else if (searchField === 'alias') {
-                fieldMatch = (emp.alias || '').toLowerCase().includes(searchText);
             } else if (searchField === 'department') {
                 fieldMatch = (emp.department || '').toLowerCase().includes(searchText);
             } else if (searchField === 'rank') {
                 fieldMatch = (emp.rank || '').toLowerCase().includes(searchText);
             } else if (searchField === 'position') {
                 fieldMatch = (emp.position || '').toLowerCase().includes(searchText);
-            } else if (searchField === 'dop') {
-                fieldMatch = (emp.dop || '').toLowerCase().includes(searchText);
             } else if (searchField === 'status') {
                 fieldMatch = (emp.status || '').toLowerCase().includes(searchText);
             } else if (searchField === 'personalNumber') {
@@ -164,17 +158,14 @@ function applyFilters() {
 function populateFilterOptions() {
     const deptSet = new Set();
     const rankSet = new Set();
-    const dopSet = new Set();
     const statusSet = new Set();
     employees.forEach(emp => {
         if (emp.department) deptSet.add(emp.department);
         if (emp.rank) rankSet.add(emp.rank);
-        if (emp.dop) dopSet.add(emp.dop);
         if (emp.status) statusSet.add(emp.status);
     });
     populateSelect('filterDepartment', deptSet);
     populateSelect('filterRank', rankSet);
-    populateSelect('filterDop', dopSet);
     populateSelect('filterStatus', statusSet);
     // datalist для формы
     populateDatalist('deptList', deptSet);
@@ -213,21 +204,13 @@ function populateDatalist(id, values) {
 function updateStats(list) {
     document.getElementById('totalCount').textContent = list.length;
 
-    const statusCount = {};
+    const deptCount = {};
     list.forEach(emp => {
-        const s = emp.status || 'Не указано';
-        statusCount[s] = (statusCount[s] || 0) + 1;
+        const d = emp.department || 'Не указано';
+        deptCount[d] = (deptCount[d] || 0) + 1;
     });
-    const statusStr = Object.entries(statusCount).map(([k, v]) => `${k}: ${v}`).join('; ');
-    document.getElementById('statusStats').textContent = statusStr || '—';
-
-    const dopCount = {};
-    list.forEach(emp => {
-        const d = emp.dop || 'Не указано';
-        dopCount[d] = (dopCount[d] || 0) + 1;
-    });
-    const dopStr = Object.entries(dopCount).map(([k, v]) => `${k}: ${v}`).join('; ');
-    document.getElementById('dopStats').textContent = dopStr || '—';
+    const deptStr = Object.entries(deptCount).map(([k, v]) => `${k}: ${v}`).join('; ');
+    document.getElementById('deptStats').textContent = deptStr || '—';
 
     const rankCount = {};
     list.forEach(emp => {
@@ -236,6 +219,14 @@ function updateStats(list) {
     });
     const rankStr = Object.entries(rankCount).map(([k, v]) => `${k}: ${v}`).join('; ');
     document.getElementById('rankStats').textContent = rankStr || '—';
+
+    const statusCount = {};
+    list.forEach(emp => {
+        const s = emp.status || 'Не указано';
+        statusCount[s] = (statusCount[s] || 0) + 1;
+    });
+    const statusStr = Object.entries(statusCount).map(([k, v]) => `${k}: ${v}`).join('; ');
+    document.getElementById('statusStats').textContent = statusStr || '—';
 }
 
 // ===== ОТРИСОВКА ТАБЛИЦЫ =====
@@ -247,8 +238,7 @@ function renderTable(data) {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
         const tr = document.createElement('tr');
         const hasPhoto = emp.photo && emp.photo.length > 100;
-        const statusClass = emp.status === 'Благонадёжен' ? 'blag' : (emp.status === 'Требует внимания' ? 'attention' : 'diskred');
-        const dopClass = emp.dop === 'ДСП' ? 'dsp' : (emp.dop === 'Секретно' ? 'secret' : (emp.dop === 'Сов. секретно' ? 'topsecret' : 'ov'));
+        const statusClass = emp.status || 'active';
 
         tr.innerHTML = `
             <td><input type="checkbox" class="row-checkbox" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} /></td>
@@ -256,10 +246,9 @@ function renderTable(data) {
                 ${hasPhoto ? `<img src="${emp.photo}" alt="фото" style="width:40px; height:40px; border-radius:50%; object-fit:cover; cursor:pointer;" class="photo-thumb" data-id="${emp.id}" />` : '<span style="color:#aaa;">—</span>'}
             </td>
             <td>${fio}</td>
-            <td><strong>${emp.alias || ''}</strong></td>
             <td>${emp.department || ''}</td>
             <td>${emp.rank || ''}</td>
-            <td><span class="dop-badge ${dopClass}">${emp.dop || ''}</span></td>
+            <td>${emp.position || ''}</td>
             <td><span class="status-badge ${statusClass}">${emp.status || '—'}</span></td>
             <td>
                 <button class="btn-icon edit" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-pen"></i></button>
@@ -292,7 +281,7 @@ function renderTable(data) {
                 if (!emp) return;
                 editingId = id;
                 fillForm(emp);
-                document.getElementById('formTitle').textContent = 'Редактировать сотрудника УСБ';
+                document.getElementById('formTitle').textContent = 'Редактировать сотрудника';
                 document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Сохранить';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             });
@@ -356,21 +345,21 @@ function copyEmployee(emp) {
     document.getElementById('lastName').value = '';
     document.getElementById('firstName').value = '';
     document.getElementById('patronymic').value = '';
-    document.getElementById('alias').value = '';
-    document.getElementById('formTitle').textContent = 'Копирование сотрудника УСБ';
+    document.getElementById('formTitle').textContent = 'Копирование сотрудника';
     document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ===== ФОРМА =====
 function fillForm(emp) {
-    const fields = ['lastName', 'firstName', 'patronymic', 'alias', 'department', 'rank', 'position', 'personalNumber', 'notes', 'resolution', 'marks'];
+    const fields = ['lastName', 'firstName', 'patronymic', 'birthDate', 'department', 'rank', 'position', 'personalNumber', 'hireDate', 'alias', 'notes', 'resolution', 'marks'];
     fields.forEach(f => {
         const el = document.getElementById(f);
         if (el) el.value = emp[f] || '';
     });
-    document.getElementById('dop').value = emp.dop || 'Секретно';
-    document.getElementById('status').value = emp.status || 'Благонадёжен';
+    document.getElementById('gender').value = emp.gender || 'мужской';
+    document.getElementById('status').value = emp.status || 'действует';
+    document.getElementById('dop').value = emp.dop || '';
     document.getElementById('qualAgent').checked = !!emp.qualAgent;
     document.getElementById('qualSurveillance').checked = !!emp.qualSurveillance;
     document.getElementById('qualCrypto').checked = !!emp.qualCrypto;
@@ -395,7 +384,7 @@ function resetForm() {
     document.getElementById('photoPreview').style.display = 'none';
     document.getElementById('photoPreviewImg').src = '#';
     document.getElementById('photo').value = '';
-    document.getElementById('formTitle').textContent = 'Добавить сотрудника УСБ';
+    document.getElementById('formTitle').textContent = 'Добавить сотрудника';
     document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
     document.querySelectorAll('.form-group input').forEach(inp => inp.classList.remove('error', 'success'));
     document.getElementById('personalNumber').value = generatePersonalNumber();
@@ -405,8 +394,9 @@ function resetForm() {
     document.getElementById('notes').value = '';
     document.getElementById('resolution').value = '';
     document.getElementById('marks').value = '';
-    document.getElementById('dop').value = 'Секретно';
-    document.getElementById('status').value = 'Благонадёжен';
+    document.getElementById('dop').value = '';
+    document.getElementById('status').value = 'действует';
+    document.getElementById('gender').value = 'мужской';
 }
 
 // ===== ОБРАБОТКА ФОРМЫ =====
@@ -416,10 +406,8 @@ function handleFormSubmit(e) {
 
     const lastName = document.getElementById('lastName');
     const firstName = document.getElementById('firstName');
-    const alias = document.getElementById('alias');
     let valid = validateField(lastName);
     if (!validateField(firstName)) valid = false;
-    if (!validateField(alias)) valid = false;
     if (!valid) {
         alert('Пожалуйста, исправьте ошибки в форме');
         return;
@@ -444,13 +432,16 @@ function handleFormSubmit(e) {
         lastName: lastName.value.trim(),
         firstName: firstName.value.trim(),
         patronymic: document.getElementById('patronymic').value.trim(),
-        alias: alias.value.trim(),
-        personalNumber: personalNumber,
+        birthDate: document.getElementById('birthDate').value,
+        gender: document.getElementById('gender').value,
+        department: document.getElementById('department').value.trim(),
         rank: document.getElementById('rank').value.trim(),
         position: document.getElementById('position').value.trim(),
-        department: document.getElementById('department').value.trim(),
-        dop: document.getElementById('dop').value,
+        personalNumber: personalNumber,
+        hireDate: document.getElementById('hireDate').value,
         status: document.getElementById('status').value,
+        alias: document.getElementById('alias').value.trim(),
+        dop: document.getElementById('dop').value,
         qualAgent: document.getElementById('qualAgent').checked,
         qualSurveillance: document.getElementById('qualSurveillance').checked,
         qualCrypto: document.getElementById('qualCrypto').checked,
@@ -496,12 +487,12 @@ function initGroupAction() {
         error.style.display = 'none';
         if (action === 'status') {
             title.innerHTML = '<i class="fas fa-edit"></i> Изменить статус';
-            label.textContent = 'Новый статус (Благонадёжен / Требует внимания / Дискредитирован)';
+            label.textContent = 'Новый статус (действует, отпуск, командировка, уволен)';
             field.placeholder = 'Введите статус';
-        } else if (action === 'dop') {
-            title.innerHTML = '<i class="fas fa-edit"></i> Изменить допуск';
-            label.textContent = 'Новый допуск (ДСП / Секретно / Сов. секретно / ОВ)';
-            field.placeholder = 'Введите допуск';
+        } else if (action === 'department') {
+            title.innerHTML = '<i class="fas fa-edit"></i> Изменить подразделение';
+            label.textContent = 'Новое подразделение';
+            field.placeholder = 'Введите подразделение';
         }
         field.value = '';
         modal.style.display = 'flex';
@@ -530,8 +521,8 @@ function initGroupAction() {
                 if (action === 'status') {
                     emp.status = value;
                     changed++;
-                } else if (action === 'dop') {
-                    emp.dop = value;
+                } else if (action === 'department') {
+                    emp.department = value;
                     changed++;
                 }
             }
@@ -576,23 +567,26 @@ function generateReport(emp) {
     const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
     const fields = [
         ['ФИО', fio],
-        ['Оперативный псевдоним', emp.alias || '—'],
-        ['Личный номер', emp.personalNumber || '—'],
-        ['Специальное звание', emp.rank || '—'],
-        ['Должность', emp.position || '—'],
+        ['Дата рождения', emp.birthDate || '—'],
+        ['Пол', emp.gender || '—'],
         ['Подразделение', emp.department || '—'],
-        ['Уровень доступа', emp.dop || '—'],
+        ['Звание', emp.rank || '—'],
+        ['Должность', emp.position || '—'],
+        ['Личный номер', emp.personalNumber || '—'],
+        ['Дата принятия', emp.hireDate || '—'],
         ['Статус', emp.status || '—'],
-        ['Агентурная работа', emp.qualAgent ? 'Да' : 'Нет'],
-        ['Наружное наблюдение', emp.qualSurveillance ? 'Да' : 'Нет'],
-        ['Шифровальная техника', emp.qualCrypto ? 'Да' : 'Нет'],
+        ['Псевдоним', emp.alias || '—'],
+        ['Допуск', emp.dop || '—'],
+        ['Агентурная', emp.qualAgent ? 'Да' : 'Нет'],
+        ['Наружное', emp.qualSurveillance ? 'Да' : 'Нет'],
+        ['Шифр.', emp.qualCrypto ? 'Да' : 'Нет'],
         ['Особые отметки', emp.notes || '—'],
         ['Резолюция', emp.resolution || '—'],
-        ['Отметки о прохождении', emp.marks || '—']
+        ['Отметки', emp.marks || '—']
     ];
     doc.setFontSize(18);
     doc.setTextColor('#0b1a2e');
-    doc.text('ОТЧЁТ О СОТРУДНИКЕ УСБ', 105, 20, { align: 'center' });
+    doc.text('ОТЧЁТ О СОТРУДНИКЕ', 105, 20, { align: 'center' });
     doc.setDrawColor(212, 175, 55);
     doc.line(20, 25, 190, 25);
     if (emp.photo && emp.photo.length > 100) {
@@ -609,9 +603,9 @@ function generateReport(emp) {
     });
     doc.setFontSize(10);
     doc.setTextColor('#7a8a9e');
-    doc.text('Сформировано в АСУЛС УСБ ТУ ФСБ', 105, 280, { align: 'center' });
+    doc.text('Сформировано в АСУЛС ТУ ФСБ', 105, 280, { align: 'center' });
     doc.text(new Date().toLocaleDateString(), 105, 285, { align: 'center' });
-    doc.save(`Отчёт_УСБ_${emp.lastName}_${emp.firstName}.pdf`);
+    doc.save(`Отчёт_${emp.lastName}_${emp.firstName}.pdf`);
 }
 
 function printEmployeeCard(emp) {
@@ -628,17 +622,16 @@ function generateSummaryReport() {
     const doc = new jsPDF('landscape', 'mm', 'a4');
     doc.setFontSize(16);
     doc.setTextColor('#0b1a2e');
-    doc.text('СВОДНЫЙ ОТЧЁТ ПО СОТРУДНИКАМ УСБ', 148, 15, { align: 'center' });
+    doc.text('СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ ТУ ФСБ', 148, 15, { align: 'center' });
     doc.setDrawColor(212, 175, 55);
     doc.line(20, 20, 276, 20);
-    const headers = ['№', 'ФИО', 'Псевдоним', 'Подразделение', 'Звание', 'Допуск', 'Статус'];
+    const headers = ['№', 'ФИО', 'Подразделение', 'Звание', 'Должность', 'Статус'];
     const rows = filteredEmployees.map((emp, idx) => [
         (idx+1).toString(),
         `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim(),
-        emp.alias || '',
         emp.department || '',
         emp.rank || '',
-        emp.dop || '',
+        emp.position || '',
         emp.status || ''
     ]);
     doc.setFontSize(10);
@@ -655,9 +648,9 @@ function generateSummaryReport() {
     });
     doc.setFontSize(10);
     doc.setTextColor('#7a8a9e');
-    doc.text(`Всего: ${filteredEmployees.length} сотрудников УСБ`, 20, y+10);
-    doc.text(`Сформировано в АСУЛС УСБ ТУ ФСБ ${new Date().toLocaleDateString()}`, 148, y+10, { align: 'center' });
-    doc.save('Сводный_отчёт_УСБ.pdf');
+    doc.text(`Всего: ${filteredEmployees.length} сотрудников`, 20, y+10);
+    doc.text(`Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, 148, y+10, { align: 'center' });
+    doc.save('Сводный_отчёт_ТУ_ФСБ.pdf');
 }
 
 // ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
@@ -666,13 +659,16 @@ function exportToExcel() {
         'Фамилия': emp.lastName,
         'Имя': emp.firstName,
         'Отчество': emp.patronymic || '',
-        'Псевдоним': emp.alias || '',
-        'Личный номер': emp.personalNumber || '',
+        'Дата рождения': emp.birthDate || '',
+        'Пол': emp.gender || '',
+        'Подразделение': emp.department || '',
         'Звание': emp.rank || '',
         'Должность': emp.position || '',
-        'Подразделение': emp.department || '',
-        'Допуск': emp.dop || '',
+        'Личный номер': emp.personalNumber || '',
+        'Дата принятия': emp.hireDate || '',
         'Статус': emp.status || '',
+        'Псевдоним': emp.alias || '',
+        'Допуск': emp.dop || '',
         'Агентурная': emp.qualAgent ? 'Да' : 'Нет',
         'Наружное': emp.qualSurveillance ? 'Да' : 'Нет',
         'Шифр. техника': emp.qualCrypto ? 'Да' : 'Нет',
@@ -682,8 +678,8 @@ function exportToExcel() {
     }));
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, 'Сотрудники УСБ');
-    XLSX.writeFile(wb, 'АСУЛС_УСБ_список.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Сотрудники ТУ ФСБ');
+    XLSX.writeFile(wb, 'АСУЛС_ТУ_ФСБ_список.xlsx');
 }
 
 function importFromExcel(file) {
@@ -699,13 +695,16 @@ function importFromExcel(file) {
                 lastName: (row['Фамилия'] || '').toString().trim(),
                 firstName: (row['Имя'] || '').toString().trim(),
                 patronymic: (row['Отчество'] || '').toString().trim(),
-                alias: (row['Псевдоним'] || '').toString().trim(),
-                personalNumber: (row['Личный номер'] || '').toString().trim(),
+                birthDate: row['Дата рождения'] ? new Date(row['Дата рождения']).toISOString().split('T')[0] : '',
+                gender: (row['Пол'] || '').toString().trim(),
+                department: (row['Подразделение'] || '').toString().trim(),
                 rank: (row['Звание'] || '').toString().trim(),
                 position: (row['Должность'] || '').toString().trim(),
-                department: (row['Подразделение'] || '').toString().trim(),
-                dop: (row['Допуск'] || '').toString().trim(),
+                personalNumber: (row['Личный номер'] || '').toString().trim(),
+                hireDate: row['Дата принятия'] ? new Date(row['Дата принятия']).toISOString().split('T')[0] : '',
                 status: (row['Статус'] || '').toString().trim(),
+                alias: (row['Псевдоним'] || '').toString().trim(),
+                dop: (row['Допуск'] || '').toString().trim(),
                 qualAgent: (row['Агентурная'] || '').toLowerCase() === 'да',
                 qualSurveillance: (row['Наружное'] || '').toLowerCase() === 'да',
                 qualCrypto: (row['Шифр. техника'] || '').toLowerCase() === 'да',
@@ -747,7 +746,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchField = document.getElementById('searchField');
     const filterDepartment = document.getElementById('filterDepartment');
     const filterRank = document.getElementById('filterRank');
-    const filterDop = document.getElementById('filterDop');
     const filterStatus = document.getElementById('filterStatus');
     const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const exportExcelBtn = document.getElementById('exportExcelBtn');
@@ -824,7 +822,7 @@ document.addEventListener('DOMContentLoaded', function() {
     logoutBtn.addEventListener('click', logout);
 
     // Фильтры
-    const filterFields = [filterDepartment, filterRank, filterDop, filterStatus, searchField, searchInput];
+    const filterFields = [filterDepartment, filterRank, filterStatus, searchField, searchInput];
     filterFields.forEach(field => {
         if (field) {
             field.addEventListener('change', applyFilters);
@@ -834,7 +832,6 @@ document.addEventListener('DOMContentLoaded', function() {
     clearFiltersBtn.addEventListener('click', function() {
         filterDepartment.value = '';
         filterRank.value = '';
-        filterDop.value = '';
         filterStatus.value = '';
         searchField.value = 'all';
         searchInput.value = '';
@@ -854,7 +851,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const blob = new Blob([JSON.stringify(employees, null, 2)], { type: 'application/json' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = 'asuls_usb_data.json';
+        link.download = 'asuls_tu_data.json';
         link.click();
     });
     importJsonBtn.addEventListener('click', () => importJsonInput.click());
@@ -1001,7 +998,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Валидация в реальном времени
     document.addEventListener('input', function(e) {
-        if (e.target.matches('#lastName, #firstName, #alias, #personalNumber')) {
+        if (e.target.matches('#lastName, #firstName, #personalNumber')) {
             validateField(e.target);
         }
     });
