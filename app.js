@@ -200,33 +200,42 @@ function populateDatalist(id, values) {
     });
 }
 
-// ===== СТАТИСТИКА =====
+// ===== СТАТИСТИКА С КРАСИВЫМИ ТЕГАМИ =====
 function updateStats(list) {
     document.getElementById('totalCount').textContent = list.length;
 
+    // Подразделения
     const deptCount = {};
     list.forEach(emp => {
         const d = emp.department || 'Не указано';
         deptCount[d] = (deptCount[d] || 0) + 1;
     });
-    const deptStr = Object.entries(deptCount).map(([k, v]) => `${k}: ${v}`).join('; ');
-    document.getElementById('deptStats').textContent = deptStr || '—';
+    const deptHtml = Object.entries(deptCount)
+        .map(([k, v]) => `<span class="stat-tag">${k}: ${v}</span>`)
+        .join(' ');
+    document.getElementById('deptStats').innerHTML = deptHtml || '—';
 
+    // Звания
     const rankCount = {};
     list.forEach(emp => {
         const r = emp.rank || 'Не указано';
         rankCount[r] = (rankCount[r] || 0) + 1;
     });
-    const rankStr = Object.entries(rankCount).map(([k, v]) => `${k}: ${v}`).join('; ');
-    document.getElementById('rankStats').textContent = rankStr || '—';
+    const rankHtml = Object.entries(rankCount)
+        .map(([k, v]) => `<span class="stat-tag">${k}: ${v}</span>`)
+        .join(' ');
+    document.getElementById('rankStats').innerHTML = rankHtml || '—';
 
+    // Статусы
     const statusCount = {};
     list.forEach(emp => {
         const s = emp.status || 'Не указано';
         statusCount[s] = (statusCount[s] || 0) + 1;
     });
-    const statusStr = Object.entries(statusCount).map(([k, v]) => `${k}: ${v}`).join('; ');
-    document.getElementById('statusStats').textContent = statusStr || '—';
+    const statusHtml = Object.entries(statusCount)
+        .map(([k, v]) => `<span class="stat-tag">${k}: ${v}</span>`)
+        .join(' ');
+    document.getElementById('statusStats').innerHTML = statusHtml || '—';
 }
 
 // ===== ОТРИСОВКА ТАБЛИЦЫ =====
