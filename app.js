@@ -557,7 +557,7 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== ОТЧЁТЫ (PDF) С ИСПРАВЛЕННЫМИ ШИРИНАМИ И ПЕРЕНОСАМИ =====
+// ===== ОБНОВЛЁННЫЕ ФУНКЦИИ PDF (с временным DOM-контейнером) =====
 function generateReport(emp) {
     const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
     const fields = [
@@ -612,14 +612,33 @@ function generateReport(emp) {
         </div>
     `;
 
+    // Создаём временный контейнер
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '-9999px';
+    container.style.width = '700px';
+    container.style.background = 'white';
+    container.style.padding = '20px';
+    container.style.zIndex = '-1';
+    container.innerHTML = htmlContent;
+    document.body.appendChild(container);
+
     const opt = {
         margin:        [10, 10],
         filename:      `Отчёт_${emp.lastName}_${emp.firstName}.pdf`,
         image:         { type: 'jpeg', quality: 0.98 },
-        html2canvas:   { scale: 2, letterRendering: true },
+        html2canvas:   { scale: 2, letterRendering: true, useCORS: true },
         jsPDF:         { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    html2pdf().set(opt).from(htmlContent).save();
+
+    html2pdf().set(opt).from(container).save().then(() => {
+        document.body.removeChild(container);
+    }).catch((err) => {
+        console.error(err);
+        document.body.removeChild(container);
+        alert('Ошибка при создании PDF. Пожалуйста, проверьте консоль.');
+    });
 }
 
 function printEmployeeCard(emp) {
@@ -679,14 +698,32 @@ function generateSummaryReport() {
         </div>
     `;
 
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '-9999px';
+    container.style.width = '1100px';
+    container.style.background = 'white';
+    container.style.padding = '20px';
+    container.style.zIndex = '-1';
+    container.innerHTML = htmlContent;
+    document.body.appendChild(container);
+
     const opt = {
         margin:        [10, 10],
         filename:      'Сводный_отчёт_ТУ_ФСБ.pdf',
         image:         { type: 'jpeg', quality: 0.98 },
-        html2canvas:   { scale: 2, letterRendering: true },
+        html2canvas:   { scale: 2, letterRendering: true, useCORS: true },
         jsPDF:         { unit: 'mm', format: 'a4', orientation: 'landscape' }
     };
-    html2pdf().set(opt).from(htmlContent).save();
+
+    html2pdf().set(opt).from(container).save().then(() => {
+        document.body.removeChild(container);
+    }).catch((err) => {
+        console.error(err);
+        document.body.removeChild(container);
+        alert('Ошибка при создании PDF. Пожалуйста, проверьте консоль.');
+    });
 }
 
 // ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
