@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>АСУЛС — Учёт сотрудников УСБ ТУ ФСБ</title>
+    <title>АСУЛС — Учёт личного состава ТУ ФСБ</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -18,7 +18,7 @@
             <div class="login-logo">
                 <i class="fas fa-shield-alt"></i> АСУЛС
             </div>
-            <div class="login-sub">Учёт сотрудников УСБ ТУ ФСБ</div>
+            <div class="login-sub">Учёт личного состава ТУ ФСБ</div>
             <form id="loginForm" class="login-form">
                 <div class="form-group">
                     <label for="loginFullName">ФИО</label>
@@ -47,7 +47,7 @@
                 <div class="header__logo">
                     <i class="fas fa-shield-alt"></i>
                     АСУЛС
-                    <span style="font-size:0.8rem; font-weight:400; color:#d4af37;">УСБ</span>
+                    <span style="font-size:0.8rem; font-weight:400; color:#d4af37;">ТУ ФСБ</span>
                 </div>
                 <div class="header__actions">
                     <span class="user-display" id="userDisplay">Пользователь</span>
@@ -64,20 +64,20 @@
                 </div>
                 <div class="stats-grid">
                     <div class="stat-item">
-                        <span class="stat-label">Всего сотрудников УСБ</span>
+                        <span class="stat-label">Всего сотрудников</span>
                         <span class="stat-value" id="totalCount">0</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">По статусам</span>
-                        <span class="stat-value" id="statusStats">—</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">По допускам</span>
-                        <span class="stat-value" id="dopStats">—</span>
+                        <span class="stat-label">По подразделениям</span>
+                        <span class="stat-value" id="deptStats">—</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">По званиям</span>
                         <span class="stat-value" id="rankStats">—</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">По статусам</span>
+                        <span class="stat-value" id="statusStats">—</span>
                     </div>
                 </div>
             </section>
@@ -94,11 +94,9 @@
                         <select id="searchField">
                             <option value="all">Всем полям</option>
                             <option value="fio">ФИО</option>
-                            <option value="alias">Псевдоним</option>
                             <option value="department">Подразделение</option>
                             <option value="rank">Звание</option>
                             <option value="position">Должность</option>
-                            <option value="dop">Допуск</option>
                             <option value="status">Статус</option>
                             <option value="personalNumber">Личный номер</option>
                         </select>
@@ -114,10 +112,6 @@
                     <div class="form-group">
                         <label for="filterRank">Звание</label>
                         <select id="filterRank"><option value="">Все</option></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="filterDop">Допуск</label>
-                        <select id="filterDop"><option value="">Все</option></select>
                     </div>
                     <div class="form-group">
                         <label for="filterStatus">Статус</label>
@@ -141,7 +135,7 @@
             <section class="card" id="formCard" style="display:none;">
                 <div class="card__title">
                     <i class="fas fa-user-plus"></i>
-                    <span id="formTitle">Добавить сотрудника УСБ</span>
+                    <span id="formTitle">Добавить сотрудника</span>
                     <label style="margin-left:auto; font-weight:400; font-size:0.9rem;">
                         <input type="checkbox" id="quickModeCheck"> Быстрый режим
                     </label>
@@ -163,16 +157,23 @@
                             <input type="text" id="patronymic" placeholder="Введите отчество">
                         </div>
                         <div class="form-group">
-                            <label for="alias">Оперативный псевдоним <span style="color:#b33c3c;">*</span></label>
-                            <input type="text" id="alias" placeholder="Введите псевдоним" required>
+                            <label for="birthDate">Дата рождения</label>
+                            <input type="date" id="birthDate">
                         </div>
                         <div class="form-group">
-                            <label for="personalNumber">Личный номер (жетон)</label>
-                            <input type="text" id="personalNumber" placeholder="Авто-генерация">
-                            <div class="validation-message"></div>
+                            <label for="gender">Пол</label>
+                            <select id="gender">
+                                <option value="мужской">Мужской</option>
+                                <option value="женский">Женский</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label for="rank">Специальное звание</label>
+                            <label for="department">Подразделение</label>
+                            <input type="text" id="department" placeholder="Введите подразделение" list="deptList">
+                            <datalist id="deptList"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label for="rank">Звание</label>
                             <input type="text" id="rank" placeholder="Введите звание" list="rankList">
                             <datalist id="rankList"></datalist>
                         </div>
@@ -182,38 +183,48 @@
                             <datalist id="positionList"></datalist>
                         </div>
                         <div class="form-group">
-                            <label for="department">Подразделение</label>
-                            <input type="text" id="department" placeholder="Введите подразделение" list="deptList">
-                            <datalist id="deptList"></datalist>
+                            <label for="personalNumber">Личный номер</label>
+                            <input type="text" id="personalNumber" placeholder="Авто-генерация">
+                            <div class="validation-message"></div>
                         </div>
                         <div class="form-group">
-                            <label for="dop">Уровень доступа</label>
-                            <select id="dop">
-                                <option value="ДСП">ДСП</option>
-                                <option value="Секретно" selected>Секретно</option>
-                                <option value="Сов. секретно">Сов. секретно</option>
-                                <option value="ОВ">ОВ</option>
-                            </select>
+                            <label for="hireDate">Дата принятия</label>
+                            <input type="date" id="hireDate">
                         </div>
                         <div class="form-group">
                             <label for="status">Статус</label>
                             <select id="status">
-                                <option value="Благонадёжен">Благонадёжен</option>
-                                <option value="Требует внимания">Требует внимания</option>
-                                <option value="Дискредитирован">Дискредитирован</option>
+                                <option value="действует">Действует</option>
+                                <option value="отпуск">Отпуск</option>
+                                <option value="командировка">Командировка</option>
+                                <option value="уволен">Уволен</option>
                             </select>
                         </div>
+                        <!-- Дополнительные поля (необязательные) -->
                         <div class="form-group--full extended-fields">
-                            <div style="display:flex; gap:20px; flex-wrap:wrap;">
-                                <label style="display:flex; align-items:center; gap:6px; font-weight:400;">
-                                    <input type="checkbox" id="qualAgent"> Агентурная работа
-                                </label>
-                                <label style="display:flex; align-items:center; gap:6px; font-weight:400;">
-                                    <input type="checkbox" id="qualSurveillance"> Наружное наблюдение
-                                </label>
-                                <label style="display:flex; align-items:center; gap:6px; font-weight:400;">
-                                    <input type="checkbox" id="qualCrypto"> Шифровальная техника
-                                </label>
+                            <div style="display:flex; flex-wrap:wrap; gap:16px; width:100%;">
+                                <div style="flex:1; min-width:150px;">
+                                    <label for="alias">Оперативный псевдоним (опционально)</label>
+                                    <input type="text" id="alias" placeholder="Введите псевдоним">
+                                </div>
+                                <div style="flex:1; min-width:150px;">
+                                    <label for="dop">Уровень доступа (опционально)</label>
+                                    <select id="dop">
+                                        <option value="">Не указан</option>
+                                        <option value="ДСП">ДСП</option>
+                                        <option value="Секретно">Секретно</option>
+                                        <option value="Сов. секретно">Сов. секретно</option>
+                                        <option value="ОВ">ОВ</option>
+                                    </select>
+                                </div>
+                                <div style="flex:1; min-width:200px;">
+                                    <label>Квалификация (опционально)</label>
+                                    <div style="display:flex; gap:12px; flex-wrap:wrap; padding-top:4px;">
+                                        <label style="font-weight:400;"><input type="checkbox" id="qualAgent"> Агентурная</label>
+                                        <label style="font-weight:400;"><input type="checkbox" id="qualSurveillance"> Наружное</label>
+                                        <label style="font-weight:400;"><input type="checkbox" id="qualCrypto"> Шифр.</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="form-group">
@@ -251,13 +262,13 @@
             <!-- СПИСОК СОТРУДНИКОВ -->
             <section class="card">
                 <div class="card__title">
-                    <i class="fas fa-list"></i> Список сотрудников УСБ
+                    <i class="fas fa-list"></i> Список сотрудников
                     <span class="stat-value" id="selectedCount" style="font-size:1rem; font-weight:400; margin-left:auto;">Выбрано: 0</span>
                     <div style="display:flex; gap:8px;">
                         <select id="groupActionSelect">
                             <option value="">Групповое действие</option>
                             <option value="status">Изменить статус</option>
-                            <option value="dop">Изменить допуск</option>
+                            <option value="department">Изменить подразделение</option>
                         </select>
                         <button class="btn btn--secondary" id="groupActionApplyBtn"><i class="fas fa-check"></i> Применить</button>
                     </div>
@@ -269,10 +280,9 @@
                                 <th><input type="checkbox" id="selectAll"></th>
                                 <th>Фото</th>
                                 <th>ФИО</th>
-                                <th>Псевдоним</th>
                                 <th>Подразделение</th>
                                 <th>Звание</th>
-                                <th>Допуск</th>
+                                <th>Должность</th>
                                 <th>Статус</th>
                                 <th>Действия</th>
                             </tr>
@@ -286,7 +296,7 @@
         <!-- ФУТЕР -->
         <footer class="footer">
             <div class="container">
-                АСУЛС — Автоматизированная система учёта сотрудников УСБ ТУ ФСБ &copy; 2026
+                АСУЛС — Автоматизированная система учёта личного состава ТУ ФСБ &copy; 2026
             </div>
         </footer>
     </div>
