@@ -631,3 +631,30 @@ table td:first-child input[type="checkbox"] {
     background: #dce3ed;
     cursor: default;
 }
+
+.stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0b1a2e;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.stat-tag {
+    display: inline-block;
+    background: #f0f4fa;
+    padding: 2px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #1a2f44;
+    border: 1px solid #dce3ed;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+.stat-tag:hover {
+    background: #dce3ed;
+    cursor: default;
+}
