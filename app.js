@@ -557,7 +557,7 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== НОВЫЕ ФУНКЦИИ ОТЧЁТОВ (через html2pdf) =====
+// ===== ОТЧЁТЫ (PDF) С ИСПРАВЛЕННЫМИ ШИРИНАМИ И ПЕРЕНОСАМИ =====
 function generateReport(emp) {
     const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
     const fields = [
@@ -582,8 +582,8 @@ function generateReport(emp) {
 
     let rowsHtml = fields.map(([label, value]) => `
         <tr>
-            <td style="font-weight:bold; padding:6px 12px; border-bottom:1px solid #ddd;">${label}</td>
-            <td style="padding:6px 12px; border-bottom:1px solid #ddd;">${value}</td>
+            <td style="font-weight:bold; padding:6px 12px; border-bottom:1px solid #ddd; width:35%;">${label}</td>
+            <td style="padding:6px 12px; border-bottom:1px solid #ddd; word-wrap:break-word;">${value}</td>
         </tr>
     `).join('');
 
@@ -596,7 +596,11 @@ function generateReport(emp) {
         <div style="font-family: 'Times New Roman', Times, serif; max-width: 700px; margin:0 auto; padding:20px;">
             <h2 style="text-align:center; color:#0b1a2e; border-bottom:3px solid #d4af37; padding-bottom:8px;">ОТЧЁТ О СОТРУДНИКЕ</h2>
             ${photoHtml}
-            <table style="width:100%; border-collapse:collapse; font-size:14px;">
+            <table style="width:100%; border-collapse:collapse; font-size:14px; table-layout:fixed;">
+                <colgroup>
+                    <col style="width:35%;">
+                    <col style="width:65%;">
+                </colgroup>
                 <tbody>
                     ${rowsHtml}
                 </tbody>
@@ -628,30 +632,40 @@ function generateSummaryReport() {
         return;
     }
 
-    let rowsHtml = filteredEmployees.map((emp, idx) => `
+    let rowsHtml = filteredEmployees.map((emp, idx) => {
+        const status = emp.status || '';
+        return `
         <tr>
-            <td style="padding:6px 10px; border-bottom:1px solid #ddd; text-align:center;">${idx+1}</td>
-            <td style="padding:6px 10px; border-bottom:1px solid #ddd;">${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}</td>
-            <td style="padding:6px 10px; border-bottom:1px solid #ddd;">${emp.department || ''}</td>
-            <td style="padding:6px 10px; border-bottom:1px solid #ddd;">${emp.rank || ''}</td>
-            <td style="padding:6px 10px; border-bottom:1px solid #ddd;">${emp.position || ''}</td>
-            <td style="padding:6px 10px; border-bottom:1px solid #ddd;">${emp.status || ''}</td>
-        </tr>
-    `).join('');
+            <td style="text-align:center; padding:6px 8px; border-bottom:1px solid #ddd;">${idx+1}</td>
+            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}</td>
+            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.department || ''}</td>
+            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.rank || ''}</td>
+            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.position || ''}</td>
+            <td style="padding:6px 8px; border-bottom:1px solid #ddd; white-space:nowrap;">${status}</td>
+        </tr>`;
+    }).join('');
 
     const htmlContent = `
         <div style="font-family: 'Times New Roman', Times, serif; max-width: 1100px; margin:0 auto; padding:20px;">
             <h2 style="text-align:center; color:#0b1a2e; border-bottom:3px solid #d4af37; padding-bottom:8px;">СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ ТУ ФСБ</h2>
             <p style="text-align:center; color:#5a6a7a; margin-bottom:20px;">Всего сотрудников: ${filteredEmployees.length}</p>
-            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed;">
+                <colgroup>
+                    <col style="width:6%;">
+                    <col style="width:32%;">
+                    <col style="width:18%;">
+                    <col style="width:14%;">
+                    <col style="width:18%;">
+                    <col style="width:12%;">
+                </colgroup>
                 <thead>
                     <tr style="background:#1a2f44; color:#fff;">
-                        <th style="padding:8px 12px; text-align:center;">№</th>
-                        <th style="padding:8px 12px; text-align:left;">ФИО</th>
-                        <th style="padding:8px 12px; text-align:left;">Подразделение</th>
-                        <th style="padding:8px 12px; text-align:left;">Звание</th>
-                        <th style="padding:8px 12px; text-align:left;">Должность</th>
-                        <th style="padding:8px 12px; text-align:left;">Статус</th>
+                        <th style="padding:8px 10px; text-align:center;">№</th>
+                        <th style="padding:8px 10px; text-align:left;">ФИО</th>
+                        <th style="padding:8px 10px; text-align:left;">Подразделение</th>
+                        <th style="padding:8px 10px; text-align:left;">Звание</th>
+                        <th style="padding:8px 10px; text-align:left;">Должность</th>
+                        <th style="padding:8px 10px; text-align:left;">Статус</th>
                     </tr>
                 </thead>
                 <tbody>
