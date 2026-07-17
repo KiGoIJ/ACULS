@@ -557,7 +557,7 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== ОТЧЁТЫ (PDF) — ШРИФТ HELVETICA (корректно работает с кириллицей) =====
+// ===== ОТЧЁТЫ (PDF) — ИСПОЛЬЗУЕМ ШРИФТ COURIER (ПОДДЕРЖИВАЕТ КИРИЛЛИЦУ) =====
 function generateReport(emp) {
     if (typeof window.jspdf === 'undefined') {
         alert('Библиотека jsPDF не загружена. Проверьте подключение в index.html.');
@@ -567,7 +567,7 @@ function generateReport(emp) {
     const doc = new jsPDF('p', 'mm', 'a4');
     const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
     
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('courier', 'bold');
     doc.setFontSize(18);
     doc.setTextColor('#0b1a2e');
     doc.text('ОТЧЁТ О СОТРУДНИКЕ', 105, 20, { align: 'center' });
@@ -576,7 +576,7 @@ function generateReport(emp) {
     doc.line(20, 25, 190, 25);
     
     let y = 35;
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('courier', 'normal');
     doc.setFontSize(12);
     doc.setTextColor('#000000');
     
@@ -605,16 +605,16 @@ function generateReport(emp) {
             doc.addPage();
             y = 20;
         }
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('courier', 'bold');
         doc.text(label + ':', 20, y);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('courier', 'normal');
         const maxWidth = 130;
         const lines = doc.splitTextToSize(value, maxWidth);
         doc.text(lines, 65, y);
         y += 10 * lines.length + 2;
     });
     
-    doc.setFont('helvetica', 'italic');
+    doc.setFont('courier', 'italic');
     doc.setFontSize(10);
     doc.setTextColor('#7a8a9e');
     doc.text('Сформировано в АСУЛС ТУ ФСБ', 105, 285, { align: 'center' });
@@ -639,7 +639,7 @@ function generateSummaryReport() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('landscape', 'mm', 'a4');
     
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('courier', 'bold');
     doc.setFontSize(16);
     doc.setTextColor('#0b1a2e');
     doc.text('СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ ТУ ФСБ', 148, 15, { align: 'center' });
@@ -651,7 +651,7 @@ function generateSummaryReport() {
     let y = 28;
     doc.setFillColor(26, 47, 68);
     doc.rect(20, y-6, 256, 8, 'F');
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('courier', 'bold');
     doc.setFontSize(11);
     doc.setTextColor('#ffffff');
     let x = 20;
@@ -660,7 +660,7 @@ function generateSummaryReport() {
         x += colWidths[i];
     });
     
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('courier', 'normal');
     doc.setFontSize(10);
     doc.setTextColor('#000000');
     y += 8;
@@ -686,7 +686,7 @@ function generateSummaryReport() {
             y = 20;
             doc.setFillColor(26, 47, 68);
             doc.rect(20, y-6, 256, 8, 'F');
-            doc.setFont('helvetica', 'bold');
+            doc.setFont('courier', 'bold');
             doc.setFontSize(11);
             doc.setTextColor('#ffffff');
             let xh = 20;
@@ -694,14 +694,14 @@ function generateSummaryReport() {
                 doc.text(h, xh + (i === 0 ? 0 : 2), y);
                 xh += colWidths[i];
             });
-            doc.setFont('helvetica', 'normal');
+            doc.setFont('courier', 'normal');
             doc.setFontSize(10);
             doc.setTextColor('#000000');
             y += 8;
         }
     });
     
-    doc.setFont('helvetica', 'italic');
+    doc.setFont('courier', 'italic');
     doc.setFontSize(10);
     doc.setTextColor('#7a8a9e');
     doc.text(`Всего: ${filteredEmployees.length} сотрудников`, 20, y+10);
