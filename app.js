@@ -19,7 +19,6 @@ function setMasterPassword(newMaster) {
 function getUsers() {
     const raw = localStorage.getItem(USERS_KEY);
     if (!raw) {
-        // Создаём администратора по умолчанию
         const defaultUsers = [
             { fullName: 'Администратор', password: 'admin', role: 'admin' }
         ];
@@ -64,7 +63,51 @@ function saveData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
 }
 
-// ===== ФИЛЬТРАЦИЯ С УМНЫМ ПОИСКОМ =====
+// ===== ГЕНЕРАЦИЯ ЛИЧНОГО НОМЕРА =====
+function generatePersonalNumber() {
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2);
+    const existing = employees.filter(e => e.personalNumber && e.personalNumber.startsWith(year));
+    const maxNum = existing.reduce((max, e) => {
+        const num = parseInt(e.personalNumber.slice(2), 10);
+        return num > max ? num : max;
+    }, 0);
+    return year + String(maxNum + 1).padStart(4, '0');
+}
+
+// ===== ВАЛИДАЦИЯ ПОЛЕЙ =====
+function validateField(input) {
+    const id = input.id;
+    const value = input.value.trim();
+    const msg = input.nextElementSibling;
+    let valid = true;
+    let errorText = '';
+    if (id === 'lastName' || id === 'firstName') {
+        if (!value) {
+            valid = false;
+            errorText = 'Поле обязательно';
+        } else if (!/^[а-яА-Яa-zA-Z\s\-]+$/.test(value)) {
+            valid = false;
+            errorText = 'Только буквы, пробелы и дефис';
+        }
+    } else if (id === 'personalNumber' && value) {
+        if (!/^\d+$/.test(value)) {
+            valid = false;
+            errorText = 'Только цифры';
+        }
+    }
+    input.classList.remove('error', 'success');
+    if (!valid) {
+        input.classList.add('error');
+        if (msg) msg.textContent = errorText;
+    } else {
+        if (value) input.classList.add('success');
+        if (msg) msg.textContent = '';
+    }
+    return valid;
+}
+
+// ===== ФИЛЬТРАЦИЯ =====
 function applyFilters() {
     const dept = document.getElementById('filterDepartment').value;
     const rank = document.getElementById('filterRank').value;
@@ -106,9 +149,10 @@ function applyFilters() {
     });
     renderTable(filteredEmployees);
     updateStats(filteredEmployees);
+    updateSelectedCount();
 }
 
-// ===== ОБНОВЛЕНИЕ СПИСКОВ ФИЛЬТРОВ =====
+// ===== ОБНОВЛЕНИЕ СПИСКОВ ФИЛЬТРОВ И ДАТАЛИСТОВ =====
 function populateFilterOptions() {
     const deptSet = new Set();
     const rankSet = new Set();
@@ -121,6 +165,12 @@ function populateFilterOptions() {
     populateSelect('filterDepartment', deptSet);
     populateSelect('filterRank', rankSet);
     populateSelect('filterStatus', statusSet);
+    // datalist для формы
+    populateDatalist('deptList', deptSet);
+    populateDatalist('rankList', rankSet);
+    const posSet = new Set();
+    employees.forEach(emp => { if (emp.position) posSet.add(emp.position); });
+    populateDatalist('positionList', posSet);
 }
 
 function populateSelect(id, values) {
@@ -135,6 +185,17 @@ function populateSelect(id, values) {
         select.appendChild(opt);
     });
     select.value = currentValue;
+}
+
+function populateDatalist(id, values) {
+    const datalist = document.getElementById(id);
+    if (!datalist) return;
+    datalist.innerHTML = '';
+    values.forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        datalist.appendChild(opt);
+    });
 }
 
 // ===== СТАТИСТИКА =====
@@ -166,7 +227,7 @@ function updateStats(list) {
     document.getElementById('statusStats').textContent = statusStr || '—';
 }
 
-// ===== ОТРИСОВКА ТАБЛИЦЫ С АНИМИРОВАННЫМИ СТАТУСАМИ =====
+// ===== ОТРИСОВКА ТАБЛИЦЫ =====
 function renderTable(data) {
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
@@ -175,15 +236,14 @@ function renderTable(data) {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
         const tr = document.createElement('tr');
         const hasPhoto = emp.photo && emp.photo.length > 100;
-        // Статус с иконкой
         let statusClass = '';
-        let statusText = emp.status || '—';
         if (emp.status === 'действует') statusClass = 'active';
         else if (emp.status === 'отпуск') statusClass = 'vacation';
         else if (emp.status === 'командировка') statusClass = 'mission';
         else if (emp.status === 'уволен') statusClass = 'fired';
 
         tr.innerHTML = `
+            <td><input type="checkbox" class="row-checkbox" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} /></td>
             <td>
                 ${hasPhoto ? `<img src="${emp.photo}" alt="фото" style="width:40px; height:40px; border-radius:50%; object-fit:cover; cursor:pointer;" class="photo-thumb" data-id="${emp.id}" />` : '<span style="color:#aaa;">—</span>'}
             </td>
@@ -194,11 +254,12 @@ function renderTable(data) {
             <td>
                 <span class="status-badge">
                     <span class="status-dot ${statusClass}"></span>
-                    <span class="status-text">${statusText}</span>
+                    <span class="status-text">${emp.status || '—'}</span>
                 </span>
             </td>
             <td>
                 <button class="btn-icon edit" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-pen"></i></button>
+                <button class="btn-icon copy" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-copy" title="Копировать"></i></button>
                 <button class="btn-icon delete" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-trash"></i></button>
                 <button class="btn-icon print" data-id="${emp.id}"><i class="fas fa-print" title="Личное дело"></i></button>
                 <button class="btn-icon report" data-id="${emp.id}"><i class="fas fa-file-alt" title="Отчёт"></i></button>
@@ -207,7 +268,7 @@ function renderTable(data) {
         tbody.appendChild(tr);
     });
 
-    // Обработчики только если админ
+    // Обработчики для админа
     if (isAdmin) {
         document.querySelectorAll('.delete').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -227,18 +288,31 @@ function renderTable(data) {
                 if (!emp) return;
                 editingId = id;
                 fillForm(emp);
-                const titleIcon = document.querySelector('.card__title i');
-                const titleText = document.querySelector('.card__title');
-                if (titleIcon) titleIcon.className = 'fas fa-user-edit';
-                if (titleText) titleText.childNodes[2].textContent = ' Редактировать сотрудника';
-                const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
-                if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Сохранить';
+                document.getElementById('formTitle').textContent = 'Редактировать сотрудника';
+                document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Сохранить';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             });
         });
+        document.querySelectorAll('.copy').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+                const emp = employees.find(e => e.id === id);
+                if (!emp) return;
+                copyEmployee(emp);
+            });
+        });
+        // Чекбоксы
+        document.querySelectorAll('.row-checkbox').forEach(cb => {
+            cb.addEventListener('change', updateSelectedCount);
+        });
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checked = this.checked;
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = checked);
+            updateSelectedCount();
+        });
     }
 
-    // Обработчики печати и отчёта (доступны всем)
+    // Обработчики для всех
     document.querySelectorAll('.print').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.currentTarget.dataset.id;
@@ -253,30 +327,43 @@ function renderTable(data) {
             if (emp) generateReport(emp);
         });
     });
-
-    // Клик по фото
     document.querySelectorAll('.photo-thumb').forEach(img => {
         img.addEventListener('click', function() {
             const id = this.dataset.id;
             const emp = employees.find(e => e.id === id);
-            if (emp && emp.photo) {
-                showPhotoModal(emp.photo, `${emp.lastName} ${emp.firstName}`);
-            }
+            if (emp && emp.photo) showPhotoModal(emp.photo, `${emp.lastName} ${emp.firstName}`);
         });
     });
 }
 
-// ===== ФОРМА С ФОТО =====
+// ===== ОБНОВЛЕНИЕ СЧЁТЧИКА ВЫБРАННЫХ =====
+function updateSelectedCount() {
+    const checked = document.querySelectorAll('.row-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = `Выбрано: ${checked}`;
+}
+
+// ===== КОПИРОВАНИЕ СОТРУДНИКА =====
+function copyEmployee(emp) {
+    editingId = null; // новый сотрудник
+    fillForm(emp);
+    // Очищаем ФИО, чтобы пользователь ввёл новые
+    document.getElementById('lastName').value = '';
+    document.getElementById('firstName').value = '';
+    document.getElementById('patronymic').value = '';
+    document.getElementById('formTitle').textContent = 'Копирование сотрудника';
+    document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== ФОРМА =====
 function fillForm(emp) {
     const fields = ['lastName', 'firstName', 'patronymic', 'birthDate', 'department', 'rank', 'position', 'personalNumber', 'hireDate'];
     fields.forEach(f => {
         const el = document.getElementById(f);
         if (el) el.value = emp[f] || '';
     });
-    const gender = document.getElementById('gender');
-    if (gender) gender.value = emp.gender || 'мужской';
-    const status = document.getElementById('status');
-    if (status) status.value = emp.status || 'действует';
+    document.getElementById('gender').value = emp.gender || 'мужской';
+    document.getElementById('status').value = emp.status || 'действует';
 
     const photoInput = document.getElementById('photo');
     const preview = document.getElementById('photoPreview');
@@ -289,22 +376,54 @@ function fillForm(emp) {
         preview.style.display = 'none';
         previewImg.src = '#';
     }
+    // Валидация сброс
+    document.querySelectorAll('.form-group input').forEach(inp => inp.classList.remove('error', 'success'));
 }
 
 function resetForm() {
-    const form = document.getElementById('employeeForm');
-    if (form) form.reset();
+    document.getElementById('employeeForm').reset();
     editingId = null;
     document.getElementById('photoPreview').style.display = 'none';
     document.getElementById('photoPreviewImg').src = '#';
     document.getElementById('photo').value = '';
-    const titleIcon = document.querySelector('.card__title i');
-    const titleText = document.querySelector('.card__title');
-    if (titleIcon) titleIcon.className = 'fas fa-user-plus';
-    if (titleText) titleText.childNodes[2].textContent = ' Добавить сотрудника';
-    const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
-    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Добавить';
+    document.getElementById('formTitle').textContent = 'Добавить сотрудника';
+    document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
+    document.querySelectorAll('.form-group input').forEach(inp => inp.classList.remove('error', 'success'));
+    // Личный номер авто-генерация
+    document.getElementById('personalNumber').value = generatePersonalNumber();
 }
+
+// Валидация в реальном времени
+document.addEventListener('input', function(e) {
+    if (e.target.matches('#lastName, #firstName, #personalNumber')) {
+        validateField(e.target);
+    }
+});
+
+// Автозаполнение по подразделению (звание и должность)
+document.getElementById('department').addEventListener('change', function() {
+    const dept = this.value;
+    if (!dept) return;
+    const deptEmployees = employees.filter(e => e.department === dept);
+    if (deptEmployees.length === 0) return;
+    const rankCount = {};
+    const posCount = {};
+    deptEmployees.forEach(e => {
+        if (e.rank) rankCount[e.rank] = (rankCount[e.rank] || 0) + 1;
+        if (e.position) posCount[e.position] = (posCount[e.position] || 0) + 1;
+    });
+    let mostRank = Object.keys(rankCount).sort((a,b) => rankCount[b]-rankCount[a])[0] || '';
+    let mostPos = Object.keys(posCount).sort((a,b) => posCount[b]-posCount[a])[0] || '';
+    const rankField = document.getElementById('rank');
+    if (!rankField.value) rankField.value = mostRank;
+    const posField = document.getElementById('position');
+    if (!posField.value) posField.value = mostPos;
+});
+
+// Быстрая форма
+document.getElementById('quickModeCheck').addEventListener('change', function() {
+    document.querySelector('.extended-fields').style.display = this.checked ? 'none' : 'block';
+});
 
 // Предпросмотр фото
 document.addEventListener('change', function(e) {
@@ -313,22 +432,152 @@ document.addEventListener('change', function(e) {
         if (file) {
             const reader = new FileReader();
             reader.onload = function(ev) {
-                const previewImg = document.getElementById('photoPreviewImg');
-                const preview = document.getElementById('photoPreview');
-                previewImg.src = ev.target.result;
-                preview.style.display = 'block';
+                document.getElementById('photoPreviewImg').src = ev.target.result;
+                document.getElementById('photoPreview').style.display = 'block';
             };
             reader.readAsDataURL(file);
         }
     }
 });
-
-// Удаление фото
 document.addEventListener('click', function(e) {
     if (e.target && e.target.id === 'removePhotoBtn') {
         document.getElementById('photo').value = '';
         document.getElementById('photoPreview').style.display = 'none';
         document.getElementById('photoPreviewImg').src = '#';
+    }
+});
+
+// ===== ОБРАБОТКА ФОРМЫ =====
+document.getElementById('employeeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!isAdmin) return;
+
+    // Валидация обязательных полей
+    const lastName = document.getElementById('lastName');
+    const firstName = document.getElementById('firstName');
+    let valid = validateField(lastName);
+    if (!validateField(firstName)) valid = false;
+    if (!valid) {
+        alert('Пожалуйста, исправьте ошибки в форме');
+        return;
+    }
+
+    let photoData = '';
+    const previewImg = document.getElementById('photoPreviewImg');
+    if (previewImg.src && previewImg.src.startsWith('data:')) {
+        photoData = previewImg.src;
+    } else {
+        const emp = employees.find(e => e.id === editingId);
+        if (emp && emp.photo) photoData = emp.photo;
+    }
+
+    let personalNumber = document.getElementById('personalNumber').value.trim();
+    if (!personalNumber) {
+        personalNumber = generatePersonalNumber();
+    }
+
+    const newEmp = {
+        id: editingId || Date.now().toString(),
+        lastName: lastName.value.trim(),
+        firstName: firstName.value.trim(),
+        patronymic: document.getElementById('patronymic').value.trim(),
+        birthDate: document.getElementById('birthDate').value,
+        gender: document.getElementById('gender').value,
+        department: document.getElementById('department').value.trim(),
+        rank: document.getElementById('rank').value.trim(),
+        position: document.getElementById('position').value.trim(),
+        personalNumber: personalNumber,
+        hireDate: document.getElementById('hireDate').value,
+        status: document.getElementById('status').value,
+        photo: photoData
+    };
+
+    if (editingId) {
+        const index = employees.findIndex(e => e.id === editingId);
+        if (index !== -1) employees[index] = newEmp;
+    } else {
+        employees.push(newEmp);
+    }
+    saveData();
+    populateFilterOptions();
+    applyFilters();
+    resetForm();
+    alert('Сотрудник сохранён');
+});
+
+// ===== ГРУППОВОЕ ДЕЙСТВИЕ =====
+document.getElementById('groupActionApplyBtn').addEventListener('click', function() {
+    const action = document.getElementById('groupActionSelect').value;
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    if (checked.length === 0) {
+        alert('Выберите хотя бы одного сотрудника');
+        return;
+    }
+    if (!action) {
+        alert('Выберите действие');
+        return;
+    }
+    // Показываем модалку с запросом значения
+    const modal = document.getElementById('groupActionModal');
+    const title = document.getElementById('groupActionTitle');
+    const label = document.getElementById('groupActionLabel');
+    const field = document.getElementById('groupActionValue');
+    const error = document.getElementById('groupActionError');
+    error.style.display = 'none';
+    if (action === 'status') {
+        title.innerHTML = '<i class="fas fa-edit"></i> Изменить статус';
+        label.textContent = 'Новый статус';
+        field.placeholder = 'действует, отпуск, командировка, уволен';
+    } else if (action === 'department') {
+        title.innerHTML = '<i class="fas fa-edit"></i> Изменить подразделение';
+        label.textContent = 'Новое подразделение';
+        field.placeholder = 'Введите название';
+    }
+    field.value = '';
+    modal.style.display = 'flex';
+    field.focus();
+});
+
+document.getElementById('groupActionClose').addEventListener('click', function() {
+    document.getElementById('groupActionModal').style.display = 'none';
+});
+
+document.getElementById('groupActionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const action = document.getElementById('groupActionSelect').value;
+    const value = document.getElementById('groupActionValue').value.trim();
+    const error = document.getElementById('groupActionError');
+    if (!value) {
+        error.textContent = 'Введите значение';
+        error.style.display = 'block';
+        return;
+    }
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const ids = Array.from(checked).map(cb => cb.dataset.id);
+    let changed = 0;
+    employees.forEach(emp => {
+        if (ids.includes(emp.id)) {
+            if (action === 'status') {
+                emp.status = value;
+                changed++;
+            } else if (action === 'department') {
+                emp.department = value;
+                changed++;
+            }
+        }
+    });
+    if (changed > 0) {
+        saveData();
+        populateFilterOptions();
+        applyFilters();
+        document.getElementById('groupActionModal').style.display = 'none';
+        // Сброс чекбоксов
+        document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+        updateSelectedCount();
+        alert(`Изменено ${changed} сотрудников`);
+    } else {
+        error.textContent = 'Не удалось применить';
+        error.style.display = 'block';
     }
 });
 
@@ -354,118 +603,44 @@ function showPhotoModal(src, name) {
 function generateReport(emp) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
-
     const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
-    const birthDate = emp.birthDate || '—';
-    const gender = emp.gender || '—';
-    const department = emp.department || '—';
-    const rank = emp.rank || '—';
-    const position = emp.position || '—';
-    const personalNumber = emp.personalNumber || '—';
-    const hireDate = emp.hireDate || '—';
-    const status = emp.status || '—';
-    const photo = emp.photo && emp.photo.length > 100 ? emp.photo : null;
-
+    const fields = [
+        ['ФИО', fio],
+        ['Дата рождения', emp.birthDate || '—'],
+        ['Пол', emp.gender || '—'],
+        ['Подразделение', emp.department || '—'],
+        ['Звание', emp.rank || '—'],
+        ['Должность', emp.position || '—'],
+        ['Личный номер', emp.personalNumber || '—'],
+        ['Дата принятия', emp.hireDate || '—'],
+        ['Статус', emp.status || '—']
+    ];
     doc.setFontSize(18);
     doc.setTextColor('#0b1a2e');
     doc.text('ОТЧЁТ О СОТРУДНИКЕ', 105, 20, { align: 'center' });
     doc.setDrawColor(212, 175, 55);
     doc.line(20, 25, 190, 25);
-
-    if (photo) {
-        try {
-            doc.addImage(photo, 'JPEG', 150, 35, 40, 50);
-        } catch (e) {}
+    if (emp.photo && emp.photo.length > 100) {
+        try { doc.addImage(emp.photo, 'JPEG', 150, 35, 40, 50); } catch(e) {}
     }
-
-    const fields = [
-        ['ФИО', fio],
-        ['Дата рождения', birthDate],
-        ['Пол', gender],
-        ['Подразделение', department],
-        ['Звание', rank],
-        ['Должность', position],
-        ['Личный номер', personalNumber],
-        ['Дата принятия', hireDate],
-        ['Статус', status]
-    ];
     let y = 35;
-    const xLabel = 25;
-    const xValue = 70;
     doc.setFontSize(12);
     fields.forEach(([label, value]) => {
         doc.setTextColor('#1a2f44');
-        doc.text(label + ':', xLabel, y);
-        doc.setTextColor('#000000');
-        doc.text(value, xValue, y);
+        doc.text(label + ':', 25, y);
+        doc.setTextColor('#000');
+        doc.text(value, 70, y);
         y += 10;
     });
-
     doc.setFontSize(10);
     doc.setTextColor('#7a8a9e');
     doc.text('Сформировано в АСУЛС ТУ ФСБ', 105, 280, { align: 'center' });
     doc.text(new Date().toLocaleDateString(), 105, 285, { align: 'center' });
-
     doc.save(`Отчёт_${emp.lastName}_${emp.firstName}.pdf`);
 }
 
-// ===== ПЕЧАТЬ ЛИЧНОГО ДЕЛА (PDF) =====
 function printEmployeeCard(emp) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-
-    const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
-    const birthDate = emp.birthDate || '—';
-    const gender = emp.gender || '—';
-    const department = emp.department || '—';
-    const rank = emp.rank || '—';
-    const position = emp.position || '—';
-    const personalNumber = emp.personalNumber || '—';
-    const hireDate = emp.hireDate || '—';
-    const status = emp.status || '—';
-    const photo = emp.photo && emp.photo.length > 100 ? emp.photo : null;
-
-    doc.setFontSize(18);
-    doc.setTextColor('#0b1a2e');
-    doc.text('ЛИЧНОЕ ДЕЛО', 105, 20, { align: 'center' });
-    doc.setDrawColor(212, 175, 55);
-    doc.line(20, 25, 190, 25);
-
-    if (photo) {
-        try {
-            doc.addImage(photo, 'JPEG', 150, 35, 40, 50);
-        } catch (e) {}
-    }
-
-    const fields = [
-        ['ФИО', fio],
-        ['Дата рождения', birthDate],
-        ['Пол', gender],
-        ['Подразделение', department],
-        ['Звание', rank],
-        ['Должность', position],
-        ['Личный номер', personalNumber],
-        ['Дата принятия', hireDate],
-        ['Статус', status]
-    ];
-    let y = 35;
-    const xLabel = 25;
-    const xValue = 70;
-    doc.setFontSize(12);
-    fields.forEach(([label, value]) => {
-        doc.setTextColor('#1a2f44');
-        doc.text(label + ':', xLabel, y);
-        doc.setTextColor('#000000');
-        doc.text(value, xValue, y);
-        y += 10;
-    });
-
-    doc.setFontSize(10);
-    doc.setTextColor('#7a8a9e');
-    doc.text('Сформировано в АСУЛС ТУ ФСБ', 105, 280, { align: 'center' });
-    doc.text(new Date().toLocaleDateString(), 105, 285, { align: 'center' });
-
-    doc.save(`Личное_дело_${emp.lastName}_${emp.firstName}.pdf`);
+    generateReport(emp); // используем ту же логику
 }
 
 // ===== СВОДНЫЙ ОТЧЁТ =====
@@ -481,43 +656,31 @@ function generateSummaryReport() {
     doc.text('СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ', 148, 15, { align: 'center' });
     doc.setDrawColor(212, 175, 55);
     doc.line(20, 20, 276, 20);
-
-    // Заголовки таблицы
     const headers = ['№', 'ФИО', 'Подразделение', 'Звание', 'Должность', 'Статус'];
     const rows = filteredEmployees.map((emp, idx) => [
-        (idx + 1).toString(),
+        (idx+1).toString(),
         `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim(),
         emp.department || '',
         emp.rank || '',
         emp.position || '',
         emp.status || ''
     ]);
-
     doc.setFontSize(10);
-    doc.setTextColor('#000');
     let y = 28;
     doc.setFillColor(26, 47, 68);
-    doc.setTextColor(255, 255, 255);
-    headers.forEach((h, i) => {
-        doc.text(h, 20 + i * 43, y);
-    });
+    doc.setTextColor(255,255,255);
+    headers.forEach((h,i) => doc.text(h, 20 + i*43, y));
     doc.setTextColor(0,0,0);
     y += 6;
-    rows.forEach((row, idx) => {
-        row.forEach((cell, i) => {
-            doc.text(cell, 20 + i * 43, y);
-        });
+    rows.forEach(row => {
+        row.forEach((cell,i) => doc.text(cell, 20 + i*43, y));
         y += 6;
-        if (y > 190) {
-            doc.addPage();
-            y = 20;
-        }
+        if (y > 190) { doc.addPage(); y = 20; }
     });
-
     doc.setFontSize(10);
     doc.setTextColor('#7a8a9e');
-    doc.text(`Всего: ${filteredEmployees.length} сотрудников`, 20, y + 10);
-    doc.text(`Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, 148, y + 10, { align: 'center' });
+    doc.text(`Всего: ${filteredEmployees.length} сотрудников`, 20, y+10);
+    doc.text(`Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, 148, y+10, { align: 'center' });
     doc.save('Сводный_отчёт.pdf');
 }
 
@@ -568,8 +731,8 @@ function importFromExcel(file) {
                 if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
                     employees = imported;
                     saveData();
-                    applyFilters();
                     populateFilterOptions();
+                    applyFilters();
                     alert('Импорт выполнен успешно!');
                 }
             } else {
@@ -625,7 +788,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const newUserRole = document.getElementById('newUserRole');
     const addUserError = document.getElementById('addUserError');
 
-    // Функция входа
     function login(fullName, password, masterPassword) {
         const result = authenticate(fullName, password, masterPassword);
         if (result.success) {
@@ -635,15 +797,15 @@ document.addEventListener('DOMContentLoaded', function() {
             appContent.style.display = 'block';
             userDisplay.textContent = currentUser.fullName + (isAdmin ? ' (админ)' : '');
 
-            // Показываем/скрываем элементы для админа
             document.getElementById('formCard').style.display = isAdmin ? 'block' : 'none';
             manageUsersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-            // Кнопки экспорта/импорта доступны всем, но импорт только админу
             importExcelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
             importJsonBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
             loadData();
             populateFilterOptions();
+            // Автогенерация номера
+            if (isAdmin) document.getElementById('personalNumber').value = generatePersonalNumber();
             applyFilters();
             loginError.style.display = 'none';
             loginFullName.value = '';
@@ -669,55 +831,11 @@ document.addEventListener('DOMContentLoaded', function() {
         loginError.style.display = 'none';
     }
 
-    // Обработчик входа
     loginForm.addEventListener('submit', function(e) {
         e.preventDefault();
         login(loginFullName.value, loginPassword.value, loginMasterPassword.value);
     });
-
     logoutBtn.addEventListener('click', logout);
-
-    // Обработчик формы добавления/редактирования (только для админа)
-    employeeForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        if (!isAdmin) return;
-        const photoInput = document.getElementById('photo');
-        let photoData = '';
-        const previewImg = document.getElementById('photoPreviewImg');
-        if (previewImg.src && previewImg.src.startsWith('data:')) {
-            photoData = previewImg.src;
-        } else {
-            const emp = employees.find(e => e.id === editingId);
-            if (emp && emp.photo) photoData = emp.photo;
-        }
-
-        const newEmp = {
-            id: editingId || Date.now().toString(),
-            lastName: document.getElementById('lastName').value.trim(),
-            firstName: document.getElementById('firstName').value.trim(),
-            patronymic: document.getElementById('patronymic').value.trim(),
-            birthDate: document.getElementById('birthDate').value,
-            gender: document.getElementById('gender').value,
-            department: document.getElementById('department').value.trim(),
-            rank: document.getElementById('rank').value.trim(),
-            position: document.getElementById('position').value.trim(),
-            personalNumber: document.getElementById('personalNumber').value.trim(),
-            hireDate: document.getElementById('hireDate').value,
-            status: document.getElementById('status').value,
-            photo: photoData
-        };
-
-        if (editingId) {
-            const index = employees.findIndex(e => e.id === editingId);
-            if (index !== -1) employees[index] = newEmp;
-        } else {
-            employees.push(newEmp);
-        }
-        saveData();
-        populateFilterOptions();
-        applyFilters();
-        resetForm();
-    });
 
     // Фильтры
     const filterFields = [filterDepartment, filterRank, filterStatus, searchField, searchInput];
@@ -745,7 +863,6 @@ document.addEventListener('DOMContentLoaded', function() {
             this.value = '';
         }
     });
-
     exportJsonBtn.addEventListener('click', function() {
         const blob = new Blob([JSON.stringify(employees, null, 2)], { type: 'application/json' });
         const link = document.createElement('a');
@@ -781,7 +898,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Сводный отчёт
     summaryReportBtn.addEventListener('click', generateSummaryReport);
 
-    // Смена пароля (только для текущего пользователя)
+    // Смена пароля
     changePasswordBtn.addEventListener('click', function() {
         changePasswordModal.style.display = 'flex';
         oldPassword.value = '';
@@ -814,13 +931,12 @@ document.addEventListener('DOMContentLoaded', function() {
             changePasswordError.style.display = 'block';
             return;
         }
-        // Обновляем пароль в списке пользователей
         const users = getUsers();
         const userIdx = users.findIndex(u => u.fullName === currentUser.fullName);
         if (userIdx !== -1) {
             users[userIdx].password = newPwd;
             saveUsers(users);
-            currentUser.password = newPwd; // обновляем сессию
+            currentUser.password = newPwd;
             alert('Пароль успешно изменён!');
             changePasswordModal.style.display = 'none';
         } else {
@@ -829,7 +945,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Управление пользователями (только админ)
+    // Управление пользователями (админ)
     manageUsersBtn.addEventListener('click', function() {
         if (!isAdmin) return;
         renderUserList();
