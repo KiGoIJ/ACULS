@@ -83,7 +83,7 @@
                 </div>
             </section>
 
-            <!-- ФИЛЬТРЫ И УМНЫЙ ПОИСК -->
+            <!-- ФИЛЬТРЫ -->
             <section class="card filter-card">
                 <h2 class="card__title"><i class="fas fa-filter"></i> Фильтры</h2>
                 <div class="filter-grid">
@@ -121,52 +121,36 @@
                 </div>
             </section>
 
-            <!-- ФОРМА ДОБАВЛЕНИЯ/РЕДАКТИРОВАНИЯ (только для админа) -->
+            <!-- ФОРМА ДОБАВЛЕНИЯ/РЕДАКТИРОВАНИЯ -->
             <section class="card" id="formCard">
-                <h2 class="card__title"><i class="fas fa-user-plus"></i> Добавить сотрудника</h2>
-                <form id="employeeForm" class="form-grid">
+                <h2 class="card__title">
+                    <i class="fas fa-user-plus"></i>
+                    <span id="formTitle">Добавить сотрудника</span>
+                    <label style="margin-left:auto; font-size:0.9rem; font-weight:400; display:flex; align-items:center; gap:6px;">
+                        <input type="checkbox" id="quickModeCheck" checked /> Быстрая форма
+                    </label>
+                </h2>
+                <form id="employeeForm" class="form-grid" novalidate>
+                    <!-- Обязательные поля (всегда видны) -->
                     <div class="form-group">
                         <label for="lastName">Фамилия *</label>
                         <input type="text" id="lastName" placeholder="Иванов" required />
+                        <span class="validation-message"></span>
                     </div>
                     <div class="form-group">
                         <label for="firstName">Имя *</label>
                         <input type="text" id="firstName" placeholder="Иван" required />
-                    </div>
-                    <div class="form-group">
-                        <label for="patronymic">Отчество</label>
-                        <input type="text" id="patronymic" placeholder="Иванович" />
-                    </div>
-                    <div class="form-group">
-                        <label for="birthDate">Дата рождения</label>
-                        <input type="date" id="birthDate" />
-                    </div>
-                    <div class="form-group">
-                        <label for="gender">Пол</label>
-                        <select id="gender">
-                            <option value="мужской">Мужской</option>
-                            <option value="женский">Женский</option>
-                        </select>
+                        <span class="validation-message"></span>
                     </div>
                     <div class="form-group">
                         <label for="department">Подразделение</label>
-                        <input type="text" id="department" placeholder="Управление «А»" />
+                        <input type="text" id="department" placeholder="Управление «А»" list="deptList" />
+                        <datalist id="deptList"></datalist>
                     </div>
                     <div class="form-group">
                         <label for="rank">Звание</label>
-                        <input type="text" id="rank" placeholder="полковник" />
-                    </div>
-                    <div class="form-group">
-                        <label for="position">Должность</label>
-                        <input type="text" id="position" placeholder="Начальник отдела" />
-                    </div>
-                    <div class="form-group">
-                        <label for="personalNumber">Личный номер</label>
-                        <input type="text" id="personalNumber" placeholder="123456" />
-                    </div>
-                    <div class="form-group">
-                        <label for="hireDate">Дата принятия</label>
-                        <input type="date" id="hireDate" />
+                        <input type="text" id="rank" placeholder="полковник" list="rankList" />
+                        <datalist id="rankList"></datalist>
                     </div>
                     <div class="form-group">
                         <label for="status">Статус</label>
@@ -177,14 +161,50 @@
                             <option value="уволен">Уволен</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="photo">Фото сотрудника</label>
-                        <input type="file" id="photo" accept="image/*" />
-                        <div id="photoPreview" style="margin-top:8px; display:none;">
-                            <img id="photoPreviewImg" src="#" alt="Предпросмотр" style="max-width:100px; max-height:100px; border-radius:6px; border:1px solid #d0d8e0;" />
-                            <button type="button" id="removePhotoBtn" class="btn btn--secondary" style="padding:4px 10px; font-size:0.8rem; margin-top:4px;">Удалить фото</button>
+
+                    <!-- Расширенные поля (скрыты по умолчанию) -->
+                    <div class="extended-fields" style="display:none; grid-column:1/-1; border-top:1px solid #e9edf2; padding-top:16px; margin-top:8px;">
+                        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:18px 20px;">
+                            <div class="form-group">
+                                <label for="patronymic">Отчество</label>
+                                <input type="text" id="patronymic" placeholder="Иванович" />
+                            </div>
+                            <div class="form-group">
+                                <label for="birthDate">Дата рождения</label>
+                                <input type="date" id="birthDate" />
+                            </div>
+                            <div class="form-group">
+                                <label for="gender">Пол</label>
+                                <select id="gender">
+                                    <option value="мужской">Мужской</option>
+                                    <option value="женский">Женский</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="position">Должность</label>
+                                <input type="text" id="position" placeholder="Начальник отдела" list="positionList" />
+                                <datalist id="positionList"></datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="personalNumber">Личный номер</label>
+                                <input type="text" id="personalNumber" placeholder="Авто-генерация" />
+                                <span class="validation-message"></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="hireDate">Дата принятия</label>
+                                <input type="date" id="hireDate" />
+                            </div>
+                            <div class="form-group">
+                                <label for="photo">Фото сотрудника</label>
+                                <input type="file" id="photo" accept="image/*" />
+                                <div id="photoPreview" style="margin-top:8px; display:none;">
+                                    <img id="photoPreviewImg" src="#" alt="Предпросмотр" style="max-width:100px; max-height:100px; border-radius:6px; border:1px solid #d0d8e0;" />
+                                    <button type="button" id="removePhotoBtn" class="btn btn--secondary" style="padding:4px 10px; font-size:0.8rem; margin-top:4px;">Удалить фото</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
                     <div class="form-group form-group--full">
                         <button type="submit" class="btn btn--primary"><i class="fas fa-save"></i> Добавить</button>
                         <button type="reset" class="btn btn--secondary"><i class="fas fa-undo"></i> Очистить</button>
@@ -192,13 +212,25 @@
                 </form>
             </section>
 
-            <!-- ТАБЛИЦА -->
+            <!-- ТАБЛИЦА С ГРУППОВЫМИ ДЕЙСТВИЯМИ -->
             <section class="card">
-                <h2 class="card__title"><i class="fas fa-users"></i> Список личного состава</h2>
+                <h2 class="card__title">
+                    <i class="fas fa-users"></i> Список личного состава
+                    <div style="margin-left:auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                        <span id="selectedCount" style="font-size:0.9rem; color:#7a8a9e;">Выбрано: 0</span>
+                        <select id="groupActionSelect" style="padding:6px 10px; border-radius:4px; border:1px solid #d0d8e0; font-size:0.9rem;">
+                            <option value="">Групповое действие</option>
+                            <option value="status">Изменить статус</option>
+                            <option value="department">Изменить подразделение</option>
+                        </select>
+                        <button id="groupActionApplyBtn" class="btn btn--secondary" style="padding:6px 14px;">Применить</button>
+                    </div>
+                </h2>
                 <div class="table-responsive">
                     <table id="employeeTable">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="selectAll" /></th>
                                 <th>Фото</th>
                                 <th>ФИО</th>
                                 <th>Подразделение</th>
@@ -248,7 +280,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ (только админ) -->
+    <!-- МОДАЛЬНОЕ ОКНО УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ -->
     <div id="manageUsersModal" class="modal" style="display:none;">
         <div class="modal-content" style="max-width:500px;">
             <span class="modal-close" id="manageUsersClose">&times;</span>
@@ -273,6 +305,22 @@
                 </div>
                 <button type="submit" class="btn btn--primary"><i class="fas fa-plus"></i> Добавить</button>
                 <div id="addUserError" class="login-error" style="display:none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО ГРУППОВОГО ДЕЙСТВИЯ -->
+    <div id="groupActionModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="modal-close" id="groupActionClose">&times;</span>
+            <h3 id="groupActionTitle"><i class="fas fa-edit"></i> Групповое изменение</h3>
+            <form id="groupActionForm">
+                <div class="form-group" id="groupActionFieldGroup">
+                    <label id="groupActionLabel" for="groupActionValue">Новое значение</label>
+                    <input type="text" id="groupActionValue" required />
+                </div>
+                <button type="submit" class="btn btn--primary"><i class="fas fa-check"></i> Применить</button>
+                <div id="groupActionError" class="login-error" style="display:none;"></div>
             </form>
         </div>
     </div>
