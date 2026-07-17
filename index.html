@@ -4,1199 +4,334 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>АСУЛС — Учёт личного состава УСБ</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
-    <style>
-        /* ===== RESET & VARIABLES ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        :root {
-            --bg: #f4f6fa;
-            --surface: #ffffff;
-            --primary: #1a3a5c;
-            --primary-light: #2a5a8c;
-            --primary-dark: #0f2840;
-            --accent: #3b8fc2;
-            --text: #1e2a3a;
-            --text-secondary: #5b6f82;
-            --border: #dce3ed;
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-            --radius: 12px;
-            --transition: 0.25s ease;
-        }
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 24px;
-            min-height: 100vh;
-        }
-        .app {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: var(--surface);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            min-height: 90vh;
-        }
-        /* ===== HEADER ===== */
-        .header {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            padding: 20px 32px;
-            background: var(--primary-dark);
-            color: white;
-            gap: 16px;
-        }
-        .header-brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        .header-brand .logo {
-            font-size: 1.8rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .header-brand .logo span {
-            background: var(--accent);
-            padding: 2px 12px;
-            border-radius: 40px;
-            font-size: 0.7rem;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-        }
-        .header-brand .sub {
-            font-size: 0.8rem;
-            opacity: 0.7;
-            margin-top: 2px;
-        }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        .btn {
-            background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            color: white;
-            padding: 6px 18px;
-            border-radius: 40px;
-            font-family: inherit;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-        .btn-primary {
-            background: var(--accent);
-            border-color: var(--accent);
-            font-weight: 500;
-        }
-        .btn-primary:hover {
-            background: #2f7aa8;
-            border-color: #2f7aa8;
-        }
-        /* ===== LOGIN FORM ===== */
-        .login-form {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .login-form input {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 6px 14px;
-            border-radius: 40px;
-            color: white;
-            font-family: inherit;
-            font-size: 0.85rem;
-            outline: none;
-            width: 130px;
-            transition: var(--transition);
-        }
-        .login-form input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-        .login-form input:focus {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: var(--accent);
-        }
-        .login-form .status {
-            font-size: 0.8rem;
-            opacity: 0.8;
-            padding: 4px 12px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 40px;
-        }
-        .login-form .status.guest {
-            opacity: 0.5;
-        }
-        .login-form .status.logged {
-            opacity: 1;
-            background: rgba(59, 143, 194, 0.25);
-        }
-        /* ===== TOOLBAR ===== */
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 32px;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            gap: 12px;
-        }
-        .toolbar .left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .toolbar .left input[type="text"] {
-            padding: 8px 16px;
-            border: 1px solid var(--border);
-            border-radius: 40px;
-            font-family: inherit;
-            font-size: 0.9rem;
-            outline: none;
-            width: 240px;
-            background: var(--bg);
-            transition: var(--transition);
-        }
-        .toolbar .left input[type="text"]:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 143, 194, 0.15);
-        }
-        .toolbar .left select {
-            padding: 8px 16px;
-            border: 1px solid var(--border);
-            border-radius: 40px;
-            font-family: inherit;
-            font-size: 0.85rem;
-            background: var(--bg);
-            outline: none;
-            cursor: pointer;
-        }
-        .toolbar .right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .toolbar .right .badge-count {
-            background: var(--bg);
-            padding: 4px 14px;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-        /* ===== TABLE ===== */
-        .list-container {
-            padding: 20px 32px 32px;
-            flex: 1;
-        }
-        .table-wrap {
-            overflow-x: auto;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            background: white;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-        th {
-            text-align: left;
-            padding: 14px 16px;
-            background: var(--bg);
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-            user-select: none;
-        }
-        th:hover {
-            color: var(--text);
-        }
-        th .sort-icon {
-            margin-left: 4px;
-            opacity: 0.5;
-        }
-        td {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            vertical-align: middle;
-        }
-        tr:last-child td {
-            border-bottom: none;
-        }
-        tr:hover td {
-            background: #f8faff;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 3px 14px;
-            border-radius: 40px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            letter-spacing: 0.3px;
-            background: var(--bg);
-            color: var(--text-secondary);
-        }
-        .status-badge.blag {
-            background: #e3f5e9;
-            color: #1e7b4c;
-        }
-        .status-badge.attention {
-            background: #fef3e2;
-            color: #b47d2a;
-        }
-        .status-badge.diskred {
-            background: #fde8e5;
-            color: #b33c2a;
-        }
-        .actions-cell {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-        .actions-cell .btn-small {
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 40px;
-            padding: 4px 12px;
-            font-family: inherit;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: var(--transition);
-            color: var(--text-secondary);
-        }
-        .actions-cell .btn-small:hover {
-            background: var(--bg);
-            border-color: var(--primary-light);
-            color: var(--primary);
-        }
-        .actions-cell .btn-small.primary {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-        .actions-cell .btn-small.primary:hover {
-            background: var(--primary-light);
-        }
-        /* ===== PAGINATION ===== */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            padding: 20px 0 0;
-        }
-        .pagination button {
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 40px;
-            padding: 6px 16px;
-            font-family: inherit;
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 0.85rem;
-        }
-        .pagination button:hover:not(:disabled) {
-            background: var(--bg);
-            border-color: var(--accent);
-        }
-        .pagination button:disabled {
-            opacity: 0.3;
-            cursor: default;
-        }
-        .pagination .page-info {
-            padding: 0 12px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-        /* ===== MODAL ===== */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(4px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            animation: fadeIn 0.2s ease;
-        }
-        .modal-overlay.active {
-            display: flex;
-        }
-        .modal {
-            background: white;
-            border-radius: var(--radius);
-            max-width: 700px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 32px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-            animation: slideUp 0.25s ease;
-            position: relative;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 16px;
-        }
-        .modal-header h2 {
-            font-size: 1.4rem;
-            font-weight: 600;
-        }
-        .modal-header .close-btn {
-            background: transparent;
-            border: none;
-            font-size: 1.8rem;
-            line-height: 1;
-            cursor: pointer;
-            color: var(--text-secondary);
-            padding: 0 8px;
-        }
-        .modal-header .close-btn:hover {
-            color: var(--text);
-        }
-        .modal-body .field {
-            display: flex;
-            margin-bottom: 14px;
-            align-items: baseline;
-        }
-        .modal-body .field label {
-            width: 160px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            flex-shrink: 0;
-        }
-        .modal-body .field .value {
-            flex: 1;
-            padding-left: 12px;
-            word-break: break-word;
-        }
-        .modal-body .field .value input,
-        .modal-body .field .value select,
-        .modal-body .field .value textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 0.9rem;
-            background: var(--bg);
-            outline: none;
-            transition: var(--transition);
-        }
-        .modal-body .field .value input:focus,
-        .modal-body .field .value select:focus,
-        .modal-body .field .value textarea:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 143, 194, 0.15);
-        }
-        .modal-body .field .value textarea {
-            resize: vertical;
-            min-height: 60px;
-        }
-        .modal-body .checkbox-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            padding-left: 12px;
-        }
-        .modal-body .checkbox-group label {
-            width: auto;
-            font-weight: 400;
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-        }
-        .modal-footer {
-            margin-top: 24px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            border-top: 1px solid var(--border);
-            padding-top: 20px;
-        }
-        .modal-footer .btn {
-            color: white;
-            border: none;
-            padding: 8px 24px;
-            border-radius: 40px;
-            font-weight: 500;
-        }
-        .modal-footer .btn-secondary {
-            background: var(--bg);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-        .modal-footer .btn-secondary:hover {
-            background: #e2e8f0;
-        }
-        .modal-footer .btn-primary {
-            background: var(--primary);
-        }
-        .modal-footer .btn-primary:hover {
-            background: var(--primary-light);
-        }
-        /* ===== ANIMATIONS ===== */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 768px) {
-            .header { flex-direction: column; align-items: stretch; padding: 16px; }
-            .header-actions { flex-wrap: wrap; }
-            .login-form input { width: 100px; }
-            .toolbar { flex-direction: column; align-items: stretch; padding: 16px; }
-            .toolbar .left input[type="text"] { width: 100%; }
-            .toolbar .left { flex-direction: column; align-items: stretch; }
-            .modal { padding: 20px; margin: 10px; }
-            .modal-body .field { flex-direction: column; align-items: stretch; }
-            .modal-body .field label { width: auto; margin-bottom: 4px; }
-            .modal-body .field .value { padding-left: 0; }
-            .checkbox-group { padding-left: 0 !important; }
-        }
-        /* ===== HERB UPLOAD ===== */
-        .herb-upload {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            padding: 4px 0;
-        }
-        .herb-upload input[type="file"] {
-            font-size: 0.75rem;
-            border: 1px solid var(--border);
-            padding: 4px 8px;
-            border-radius: 40px;
-            background: var(--bg);
-        }
-        .herb-upload .herb-preview {
-            width: 36px;
-            height: 36px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            background: white;
-        }
-        .herb-upload .herb-preview img {
-            max-width: 100%;
-            max-height: 100%;
-        }
-        /* ===== PRINT STAMP (для модалки) ===== */
-        .print-stamp {
-            display: inline-block;
-            border: 3px double var(--primary);
-            padding: 4px 20px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            transform: rotate(-2deg);
-            margin: 8px 0;
-            font-size: 0.9rem;
-            background: rgba(26, 58, 92, 0.04);
-            border-radius: 4px;
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-<div class="app" id="app">
 
-    <!-- HEADER -->
-    <header class="header">
-        <div class="header-brand">
-            <div class="logo">
-                ⚡ АСУЛС
-                <span>УСБ</span>
+    <!-- ЭКРАН ВХОДА -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-card">
+            <div class="login-logo">
+                <i class="fas fa-shield-alt"></i> АСУЛС
             </div>
-            <div class="sub">Автоматизированный учёт личного состава</div>
-        </div>
-        <div class="header-actions">
-            <div class="login-form" id="loginForm">
-                <input type="text" id="loginInput" placeholder="Логин">
-                <input type="password" id="passInput" placeholder="Пароль">
-                <button class="btn" id="loginBtn" onclick="login()">Войти</button>
-                <span class="status guest" id="loginStatus">● ГОСТЬ</span>
-                <button class="btn" id="logoutBtn" style="display:none;" onclick="logout()">Выйти</button>
-            </div>
-        </div>
-    </header>
-
-    <!-- TOOLBAR -->
-    <div class="toolbar">
-        <div class="left">
-            <input type="text" id="searchInput" placeholder="Поиск по фамилии, псевдониму, № дела..." oninput="applyFilters()">
-            <select id="statusFilter" onchange="applyFilters()">
-                <option value="">Все статусы</option>
-                <option value="Благонадёжен">Благонадёжен</option>
-                <option value="Требует внимания">Требует внимания</option>
-                <option value="Дискредитирован">Дискредитирован</option>
-            </select>
-            <div class="herb-upload">
-                <span>🖼 Герб:</span>
-                <input type="file" id="herbUpload" accept="image/*" onchange="updateHerb()">
-                <div class="herb-preview" id="herbPreview">⚙</div>
-            </div>
-        </div>
-        <div class="right">
-            <span class="badge-count" id="countDisplay">0 записей</span>
-            <button class="btn btn-primary" id="addBtn" style="display:none;" onclick="openAddModal()">＋ Добавить</button>
+            <div class="login-sub">Учёт личного состава УСБ</div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="loginFullName">ФИО</label>
+                    <input type="text" id="loginFullName" placeholder="Введите ФИО" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Пароль</label>
+                    <input type="password" id="loginPassword" placeholder="Введите пароль" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginMasterPassword">Мастер-пароль</label>
+                    <input type="password" id="loginMasterPassword" placeholder="Введите мастер-пароль" required>
+                </div>
+                <div id="loginError" class="login-error" style="display:none;"></div>
+                <button type="submit" class="btn btn--gold btn--full"><i class="fas fa-sign-in-alt"></i> Войти</button>
+            </form>
+            <div class="login-hint">Мастер-пароль по умолчанию: <strong>123456</strong></div>
         </div>
     </div>
 
-    <!-- LIST -->
-    <div class="list-container">
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th onclick="sortTable('id')">№ дела <span class="sort-icon">↕</span></th>
-                        <th onclick="sortTable('alias')">Псевдоним <span class="sort-icon">↕</span></th>
-                        <th onclick="sortTable('surname')">Фамилия И.О. <span class="sort-icon">↕</span></th>
-                        <th onclick="sortTable('rank')">Звание <span class="sort-icon">↕</span></th>
-                        <th onclick="sortTable('dop')">Допуск <span class="sort-icon">↕</span></th>
-                        <th onclick="sortTable('status')">Статус <span class="sort-icon">↕</span></th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
-        </div>
-        <div class="pagination" id="pagination">
-            <button id="prevPage" onclick="changePage(-1)" disabled>‹ Назад</button>
-            <span class="page-info" id="pageInfo">Страница 1 из 1</span>
-            <button id="nextPage" onclick="changePage(1)" disabled>Вперёд ›</button>
-        </div>
-    </div>
-</div>
+    <!-- ОСНОВНОЙ КОНТЕНТ -->
+    <div id="appContent" style="display:none;">
+        <!-- ШАПКА -->
+        <header class="header">
+            <div class="container header__inner">
+                <div class="header__logo">
+                    <i class="fas fa-shield-alt"></i>
+                    АСУЛС
+                    <span style="font-size:0.8rem; font-weight:400; color:#d4af37;">УСБ</span>
+                </div>
+                <div class="header__actions">
+                    <span class="user-display" id="userDisplay">Пользователь</span>
+                    <button class="btn btn--secondary" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Выйти</button>
+                </div>
+            </div>
+        </header>
 
-<!-- MODAL -->
-<div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h2 id="modalTitle">Личное дело</h2>
-            <button class="close-btn" onclick="closeModal()">×</button>
-        </div>
-        <div class="modal-body" id="modalBody"></div>
-        <div class="modal-footer" id="modalFooter">
-            <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
-        </div>
-    </div>
-</div>
+        <div class="container main">
+            <!-- КАРТОЧКА СТАТИСТИКИ -->
+            <section class="card">
+                <div class="card__title">
+                    <i class="fas fa-chart-pie"></i> Статистика
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Всего сотрудников</span>
+                        <span class="stat-value" id="totalCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">По подразделениям</span>
+                        <span class="stat-value" id="deptStats">—</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">По званиям</span>
+                        <span class="stat-value" id="rankStats">—</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">По статусам</span>
+                        <span class="stat-value" id="statusStats">—</span>
+                    </div>
+                </div>
+            </section>
 
-<script>
-    // ===== DATA =====
-    const USERS = {
-        'admin': { password: 'admin123', role: 'Начальник УСБ', level: 5 },
-        'zam': { password: 'zam123', role: 'Зам. начальника УСБ', level: 4 },
-        'stoper': { password: 'stoper123', role: 'Ст. оперуполномоченный', level: 3 },
-        'oper': { password: 'oper123', role: 'Оперуполномоченный', level: 2 },
-        'mloper': { password: 'mloper123', role: 'Мл. оперуполномоченный', level: 1 }
-    };
+            <!-- КАРТОЧКА ФИЛЬТРОВ -->
+            <section class="card">
+                <div class="card__title">
+                    <i class="fas fa-filter"></i> Фильтры
+                    <button class="btn btn--secondary" id="clearFiltersBtn" style="margin-left:auto;"><i class="fas fa-times"></i> Сбросить</button>
+                </div>
+                <div class="filter-grid">
+                    <div class="form-group">
+                        <label for="searchField">Искать по</label>
+                        <select id="searchField">
+                            <option value="all">Всем полям</option>
+                            <option value="fio">ФИО</option>
+                            <option value="department">Подразделение</option>
+                            <option value="rank">Звание</option>
+                            <option value="position">Должность</option>
+                            <option value="status">Статус</option>
+                            <option value="personalNumber">Личный номер</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="searchInput">Поиск</label>
+                        <input type="text" id="searchInput" placeholder="Введите текст">
+                    </div>
+                    <div class="form-group">
+                        <label for="filterDepartment">Подразделение</label>
+                        <select id="filterDepartment"><option value="">Все</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filterRank">Звание</label>
+                        <select id="filterRank"><option value="">Все</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filterStatus">Статус</label>
+                        <select id="filterStatus"><option value="">Все</option></select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn--gold" id="summaryReportBtn"><i class="fas fa-file-pdf"></i> Сводный отчёт</button>
+                        <button class="btn btn--primary" id="exportExcelBtn"><i class="fas fa-file-excel"></i> Экспорт Excel</button>
+                        <button class="btn btn--secondary" id="importExcelBtn"><i class="fas fa-file-import"></i> Импорт Excel</button>
+                        <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none;">
+                        <button class="btn btn--secondary" id="exportJsonBtn"><i class="fas fa-file-code"></i> Экспорт JSON</button>
+                        <button class="btn btn--secondary" id="importJsonBtn"><i class="fas fa-file-import"></i> Импорт JSON</button>
+                        <input type="file" id="importJsonInput" accept=".json" style="display:none;">
+                        <button class="btn btn--secondary" id="changePasswordBtn"><i class="fas fa-key"></i> Сменить пароль</button>
+                        <button class="btn btn--secondary" id="manageUsersBtn" style="display:none;"><i class="fas fa-users-cog"></i> Управление пользователями</button>
+                    </div>
+                </div>
+            </section>
 
-    let currentUser = null;
-    let dela = [];
-    let filteredDela = [];
-    let sortField = 'id';
-    let sortAsc = true;
-    let currentPage = 1;
-    const pageSize = 10;
-    let herbImage = null;
-    let currentDeloId = null;
-
-    // Демо
-    const demoNames = [
-        { id:'001', alias:'Агат', surname:'Зимин', name:'Андрей', patronymic:'Викторович',
-          personalNumber:'017-К', rank:'Майор', dolz:'Старший оперуполномоченный',
-          dop:'Секретно', status:'Благонадёжен',
-          qualAgent: true, qualSurveillance: false, qualCrypto: true,
-          notes:'Рекомендован к повышению. Устойчив к психологическому давлению.',
-          resolution:'Допустить к дальнейшему прохождению службы.',
-          marks:'03.04.2026 – присвоено звание майор.' },
-        { id:'002', alias:'Титан', surname:'Волков', name:'Сергей', patronymic:'Петрович',
-          personalNumber:'112-М', rank:'Подполковник', dolz:'Начальник отдела',
-          dop:'Сов. секретно', status:'Требует внимания',
-          qualAgent: true, qualSurveillance: true, qualCrypto: false,
-          notes:'Замечены неформальные контакты. Требуется проверка.',
-          resolution:'Установить негласный контроль.',
-          marks:'' },
-        { id:'003', alias:'Заря', surname:'Котова', name:'Елена', patronymic:'Николаевна',
-          personalNumber:'205-Ж', rank:'Капитан', dolz:'Оперуполномоченный',
-          dop:'Секретно', status:'Дискредитирован',
-          qualAgent: false, qualSurveillance: true, qualCrypto: false,
-          notes:'Финансовые нарушения. Выписка со счетов приобщена.',
-          resolution:'Отстранить от оперативной работы. Передать материалы в следственный отдел.',
-          marks:'15.07.2026 – временно отстранена.' }
-    ];
-
-    // ===== INIT =====
-    function loadDela() {
-        const stored = localStorage.getItem('delaUSB');
-        if (stored) {
-            try { dela = JSON.parse(stored); } catch(e) { dela = demoNames.map(d=>({...d})); }
-        } else {
-            dela = demoNames.map(d=>({...d}));
-        }
-        saveDela();
-    }
-    function saveDela() {
-        localStorage.setItem('delaUSB', JSON.stringify(dela));
-    }
-
-    function isLoggedIn() { return currentUser !== null; }
-    function canAdd() { return isLoggedIn() && currentUser.level >= 3; }
-    function canEdit() { return isLoggedIn() && currentUser.level >= 2; }
-    function canDelete() { return isLoggedIn() && currentUser.level >= 4; }
-
-    // ===== RENDER =====
-    function render() {
-        applyFilters();
-    }
-
-    function applyFilters() {
-        const search = document.getElementById('searchInput').value.toLowerCase().trim();
-        const statusFilter = document.getElementById('statusFilter').value;
-
-        let filtered = dela.filter(d => {
-            const matchSearch = d.id.includes(search) ||
-                d.surname.toLowerCase().includes(search) ||
-                d.alias.toLowerCase().includes(search) ||
-                `${d.surname} ${d.name}`.toLowerCase().includes(search);
-            const matchStatus = statusFilter === '' || d.status === statusFilter;
-            return matchSearch && matchStatus;
-        });
-
-        filtered.sort((a, b) => {
-            let valA = a[sortField] || '';
-            let valB = b[sortField] || '';
-            if (typeof valA === 'string') valA = valA.toLowerCase();
-            if (typeof valB === 'string') valB = valB.toLowerCase();
-            if (valA < valB) return sortAsc ? -1 : 1;
-            if (valA > valB) return sortAsc ? 1 : -1;
-            return 0;
-        });
-
-        filteredDela = filtered;
-        currentPage = 1;
-        renderPage();
-    }
-
-    function renderPage() {
-        const total = filteredDela.length;
-        const totalPages = Math.ceil(total / pageSize) || 1;
-        if (currentPage > totalPages) currentPage = totalPages;
-        const start = (currentPage - 1) * pageSize;
-        const end = Math.min(start + pageSize, total);
-        const pageData = filteredDela.slice(start, end);
-
-        const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = '';
-        if (pageData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-secondary);">Записей не найдено</td></tr>`;
-        } else {
-            pageData.forEach(d => {
-                const shortName = `${d.surname} ${d.name.charAt(0)}.${d.patronymic ? ' '+d.patronymic.charAt(0)+'.' : ''}`;
-                const statusClass = d.status === 'Благонадёжен' ? 'blag' : (d.status === 'Требует внимания' ? 'attention' : 'diskred');
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${d.id}</strong></td>
-                    <td>${d.alias}</td>
-                    <td>${shortName}</td>
-                    <td>${d.rank}</td>
-                    <td>${d.dop}</td>
-                    <td><span class="status-badge ${statusClass}">${d.status}</span></td>
-                    <td>
-                        <div class="actions-cell">
-                            <button class="btn-small primary" onclick="openDelo('${d.id}')">Открыть</button>
-                            ${canEdit() ? `<button class="btn-small" onclick="editDelo('${d.id}')">✎</button>` : ''}
-                            ${canDelete() ? `<button class="btn-small" style="color:#c0392b;" onclick="deleteDelo('${d.id}')">✕</button>` : ''}
-                            <button class="btn-small" onclick="downloadDoc('${d.id}')">📄 DOC</button>
+            <!-- КАРТОЧКА ФОРМЫ ДОБАВЛЕНИЯ -->
+            <section class="card" id="formCard" style="display:none;">
+                <div class="card__title">
+                    <i class="fas fa-user-plus"></i>
+                    <span id="formTitle">Добавить сотрудника</span>
+                    <label style="margin-left:auto; font-weight:400; font-size:0.9rem;">
+                        <input type="checkbox" id="quickModeCheck"> Быстрый режим (скрыть доп. поля)
+                    </label>
+                </div>
+                <form id="employeeForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="lastName">Фамилия <span style="color:#b33c3c;">*</span></label>
+                            <input type="text" id="lastName" placeholder="Введите фамилию" required>
+                            <div class="validation-message"></div>
                         </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+                        <div class="form-group">
+                            <label for="firstName">Имя <span style="color:#b33c3c;">*</span></label>
+                            <input type="text" id="firstName" placeholder="Введите имя" required>
+                            <div class="validation-message"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="patronymic">Отчество</label>
+                            <input type="text" id="patronymic" placeholder="Введите отчество">
+                        </div>
+                        <div class="form-group">
+                            <label for="birthDate">Дата рождения</label>
+                            <input type="date" id="birthDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="gender">Пол</label>
+                            <select id="gender">
+                                <option value="мужской">Мужской</option>
+                                <option value="женский">Женский</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="department">Подразделение</label>
+                            <input type="text" id="department" placeholder="Введите подразделение" list="deptList">
+                            <datalist id="deptList"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label for="rank">Звание</label>
+                            <input type="text" id="rank" placeholder="Введите звание" list="rankList">
+                            <datalist id="rankList"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label for="position">Должность</label>
+                            <input type="text" id="position" placeholder="Введите должность" list="positionList">
+                            <datalist id="positionList"></datalist>
+                        </div>
+                        <div class="form-group">
+                            <label for="personalNumber">Личный номер</label>
+                            <input type="text" id="personalNumber" placeholder="Авто-генерация">
+                            <div class="validation-message"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="hireDate">Дата принятия</label>
+                            <input type="date" id="hireDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="status">Статус</label>
+                            <select id="status">
+                                <option value="действует">Действует</option>
+                                <option value="отпуск">Отпуск</option>
+                                <option value="командировка">Командировка</option>
+                                <option value="уволен">Уволен</option>
+                            </select>
+                        </div>
+                        <div class="form-group--full extended-fields">
+                            <div style="flex:1;">
+                                <label for="photo">Фото</label>
+                                <input type="file" id="photo" accept="image/*">
+                            </div>
+                            <div style="flex:0 0 80px; text-align:center;">
+                                <div id="photoPreview" style="display:none; position:relative;">
+                                    <img id="photoPreviewImg" src="#" alt="Фото" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid #d4af37;">
+                                    <button type="button" id="removePhotoBtn" style="position:absolute; top:-4px; right:-4px; background:#b33c3c; color:#fff; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; line-height:1;">×</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
+                        <button type="submit" class="btn btn--gold"><i class="fas fa-save"></i> Добавить</button>
+                        <button type="reset" class="btn btn--secondary" onclick="resetForm()"><i class="fas fa-undo"></i> Очистить</button>
+                    </div>
+                </form>
+            </section>
 
-        document.getElementById('pageInfo').textContent = `Страница ${currentPage} из ${totalPages}`;
-        document.getElementById('prevPage').disabled = currentPage <= 1;
-        document.getElementById('nextPage').disabled = currentPage >= totalPages;
-        document.getElementById('countDisplay').textContent = `${total} записей`;
-
-        updateUIBasedOnRole();
-    }
-
-    function changePage(delta) {
-        const totalPages = Math.ceil(filteredDela.length / pageSize) || 1;
-        const newPage = currentPage + delta;
-        if (newPage >= 1 && newPage <= totalPages) {
-            currentPage = newPage;
-            renderPage();
-        }
-    }
-
-    function sortTable(field) {
-        if (sortField === field) {
-            sortAsc = !sortAsc;
-        } else {
-            sortField = field;
-            sortAsc = true;
-        }
-        applyFilters();
-    }
-
-    // ===== MODAL =====
-    function openModal(title, bodyHTML, footerHTML = '') {
-        document.getElementById('modalTitle').textContent = title;
-        document.getElementById('modalBody').innerHTML = bodyHTML;
-        document.getElementById('modalFooter').innerHTML = footerHTML || `<button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>`;
-        document.getElementById('modalOverlay').classList.add('active');
-    }
-
-    function closeModal() {
-        document.getElementById('modalOverlay').classList.remove('active');
-        currentDeloId = null;
-    }
-
-    // ===== OPEN DELO =====
-    function openDelo(id) {
-        const d = dela.find(x => x.id === id);
-        if (!d) return;
-        currentDeloId = id;
-        const statusClass = d.status === 'Благонадёжен' ? 'blag' : (d.status === 'Требует внимания' ? 'attention' : 'diskred');
-        let html = `
-            <div style="margin-bottom:16px;">
-                <span class="print-stamp">${d.dop.toUpperCase()}</span>
-            </div>
-            <div class="field"><label>Фамилия</label><div class="value">${d.surname}</div></div>
-            <div class="field"><label>Имя</label><div class="value">${d.name}</div></div>
-            <div class="field"><label>Отчество</label><div class="value">${d.patronymic || '—'}</div></div>
-            <div class="field"><label>Псевдоним</label><div class="value">${d.alias}</div></div>
-            <div class="field"><label>Личный номер</label><div class="value">${d.personalNumber}</div></div>
-            <div class="field"><label>Подразделение</label><div class="value">Седьмой отдел ТУ ФСБ</div></div>
-            <div class="field"><label>Должность</label><div class="value">${d.dolz}</div></div>
-            <div class="field"><label>Звание</label><div class="value">${d.rank}</div></div>
-            <div class="field"><label>Доступ</label><div class="value">${d.dop}</div></div>
-            <div class="field"><label>Квалификация</label>
-                <div class="value">
-                    Агентурная: ${d.qualAgent ? '✅' : '❌'},
-                    Наружное: ${d.qualSurveillance ? '✅' : '❌'},
-                    Шифр.: ${d.qualCrypto ? '✅' : '❌'}
+            <!-- КАРТОЧКА СПИСКА -->
+            <section class="card">
+                <div class="card__title">
+                    <i class="fas fa-list"></i> Список сотрудников
+                    <span class="stat-value" id="selectedCount" style="font-size:1rem; font-weight:400; margin-left:auto;">Выбрано: 0</span>
+                    <div style="display:flex; gap:8px;">
+                        <select id="groupActionSelect">
+                            <option value="">Групповое действие</option>
+                            <option value="status">Изменить статус</option>
+                            <option value="department">Изменить подразделение</option>
+                        </select>
+                        <button class="btn btn--secondary" id="groupActionApplyBtn"><i class="fas fa-check"></i> Применить</button>
+                    </div>
                 </div>
-            </div>
-            <div class="field"><label>Особые отметки</label><div class="value">${d.notes || '—'}</div></div>
-            <div class="field"><label>Резолюция</label><div class="value">${d.resolution || '—'}</div></div>
-            <div class="field"><label>Отметки</label><div class="value">${d.marks || '—'}</div></div>
-            <div class="field"><label>Статус</label><div class="value"><span class="status-badge ${statusClass}">${d.status}</span></div></div>
-        `;
-        let footer = `
-            <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
-            ${canEdit() ? `<button class="btn btn-primary" onclick="editDelo('${d.id}')">✎ Редактировать</button>` : ''}
-            ${canDelete() ? `<button class="btn" style="background:#c0392b;border-color:#c0392b;" onclick="deleteDelo('${d.id}')">Удалить</button>` : ''}
-            <button class="btn btn-primary" onclick="downloadDoc('${d.id}')">📄 Скачать DOC</button>
-        `;
-        openModal(`Личное дело № ${d.id} · «${d.alias}»`, html, footer);
-    }
-
-    // ===== EDIT =====
-    function editDelo(id) {
-        if (!canEdit()) return;
-        const d = dela.find(x => x.id === id);
-        if (!d) return;
-        currentDeloId = id;
-        const html = `
-            <div class="field"><label>Фамилия</label><div class="value"><input id="editSurname" value="${d.surname}"></div></div>
-            <div class="field"><label>Имя</label><div class="value"><input id="editName" value="${d.name}"></div></div>
-            <div class="field"><label>Отчество</label><div class="value"><input id="editPatronymic" value="${d.patronymic||''}"></div></div>
-            <div class="field"><label>Псевдоним</label><div class="value"><input id="editAlias" value="${d.alias}"></div></div>
-            <div class="field"><label>Личный номер</label><div class="value"><input id="editPersonalNumber" value="${d.personalNumber}"></div></div>
-            <div class="field"><label>Должность</label><div class="value"><input id="editDolz" value="${d.dolz}"></div></div>
-            <div class="field"><label>Звание</label><div class="value"><input id="editRank" value="${d.rank}"></div></div>
-            <div class="field"><label>Доступ</label>
-                <div class="value">
-                    <select id="editDop">
-                        <option ${d.dop==='ДСП'?'selected':''}>ДСП</option>
-                        <option ${d.dop==='Секретно'?'selected':''}>Секретно</option>
-                        <option ${d.dop==='Сов. секретно'?'selected':''}>Сов. секретно</option>
-                        <option ${d.dop==='ОВ'?'selected':''}>ОВ</option>
-                    </select>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th>Фото</th>
+                                <th>ФИО</th>
+                                <th>Подразделение</th>
+                                <th>Звание</th>
+                                <th>Должность</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
                 </div>
-            </div>
-            <div class="field"><label>Квалификация</label>
-                <div class="checkbox-group">
-                    <label><input type="checkbox" id="editQualAgent" ${d.qualAgent?'checked':''}> Агентурная</label>
-                    <label><input type="checkbox" id="editQualSurveillance" ${d.qualSurveillance?'checked':''}> Наружное</label>
-                    <label><input type="checkbox" id="editQualCrypto" ${d.qualCrypto?'checked':''}> Шифр.</label>
-                </div>
-            </div>
-            <div class="field"><label>Особые отметки</label><div class="value"><textarea id="editNotes">${d.notes||''}</textarea></div></div>
-            <div class="field"><label>Резолюция</label><div class="value"><textarea id="editResolution">${d.resolution||''}</textarea></div></div>
-            <div class="field"><label>Отметки</label><div class="value"><textarea id="editMarks">${d.marks||''}</textarea></div></div>
-            <div class="field"><label>Статус</label>
-                <div class="value">
-                    <select id="editStatus">
-                        <option ${d.status==='Благонадёжен'?'selected':''}>Благонадёжен</option>
-                        <option ${d.status==='Требует внимания'?'selected':''}>Требует внимания</option>
-                        <option ${d.status==='Дискредитирован'?'selected':''}>Дискредитирован</option>
-                    </select>
-                </div>
-            </div>
-        `;
-        const footer = `
-            <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
-            <button class="btn btn-primary" onclick="saveEdit()">Сохранить</button>
-        `;
-        openModal(`Редактирование № ${d.id}`, html, footer);
-    }
-
-    function saveEdit() {
-        if (!canEdit() || !currentDeloId) return;
-        const d = dela.find(x => x.id === currentDeloId);
-        if (!d) return;
-        const get = id => document.getElementById(id);
-        if (get('editSurname')) {
-            d.surname = get('editSurname').value;
-            d.name = get('editName').value;
-            d.patronymic = get('editPatronymic').value;
-            d.alias = get('editAlias').value;
-            d.personalNumber = get('editPersonalNumber').value;
-            d.dolz = get('editDolz').value;
-            d.rank = get('editRank').value;
-            d.dop = get('editDop').value;
-            d.qualAgent = get('editQualAgent').checked;
-            d.qualSurveillance = get('editQualSurveillance').checked;
-            d.qualCrypto = get('editQualCrypto').checked;
-            d.notes = get('editNotes').value;
-            d.resolution = get('editResolution').value;
-            d.marks = get('editMarks').value;
-            d.status = get('editStatus').value;
-            saveDela();
-            render();
-            closeModal();
-            openDelo(d.id);
-        }
-    }
-
-    // ===== DELETE =====
-    function deleteDelo(id) {
-        if (!canDelete()) return;
-        if (!confirm(`Удалить дело №${id} безвозвратно?`)) return;
-        dela = dela.filter(d => d.id !== id);
-        saveDela();
-        render();
-        closeModal();
-    }
-
-    // ===== ADD =====
-    function openAddModal() {
-        if (!canAdd()) return;
-        const html = `
-            <div class="field"><label>№ дела</label><div class="value"><input id="newId" placeholder="001"></div></div>
-            <div class="field"><label>Фамилия</label><div class="value"><input id="newSurname" placeholder="Иванов"></div></div>
-            <div class="field"><label>Имя</label><div class="value"><input id="newName" placeholder="Иван"></div></div>
-            <div class="field"><label>Отчество</label><div class="value"><input id="newPatronymic" placeholder="Иванович"></div></div>
-            <div class="field"><label>Псевдоним</label><div class="value"><input id="newAlias" placeholder="Шторм"></div></div>
-            <div class="field"><label>Личный номер</label><div class="value"><input id="newPersonalNumber" placeholder="034-К"></div></div>
-            <div class="field"><label>Должность</label><div class="value"><input id="newDolz" placeholder="Оперуполномоченный"></div></div>
-            <div class="field"><label>Звание</label><div class="value"><input id="newRank" placeholder="Капитан"></div></div>
-            <div class="field"><label>Доступ</label>
-                <div class="value">
-                    <select id="newDop">
-                        <option>ДСП</option><option selected>Секретно</option><option>Сов. секретно</option><option>ОВ</option>
-                    </select>
-                </div>
-            </div>
-            <div class="field"><label>Квалификация</label>
-                <div class="checkbox-group">
-                    <label><input type="checkbox" id="newQualAgent"> Агентурная</label>
-                    <label><input type="checkbox" id="newQualSurveillance"> Наружное</label>
-                    <label><input type="checkbox" id="newQualCrypto"> Шифр.</label>
-                </div>
-            </div>
-            <div class="field"><label>Особые отметки</label><div class="value"><textarea id="newNotes"></textarea></div></div>
-            <div class="field"><label>Резолюция</label><div class="value"><textarea id="newResolution">Без замечаний.</textarea></div></div>
-            <div class="field"><label>Отметки</label><div class="value"><textarea id="newMarks"></textarea></div></div>
-            <div class="field"><label>Статус</label>
-                <div class="value">
-                    <select id="newStatus">
-                        <option selected>Благонадёжен</option><option>Требует внимания</option><option>Дискредитирован</option>
-                    </select>
-                </div>
-            </div>
-        `;
-        const footer = `
-            <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
-            <button class="btn btn-primary" onclick="createDelo()">Создать</button>
-        `;
-        openModal('Регистрация нового дела', html, footer);
-    }
-
-    function createDelo() {
-        if (!canAdd()) return;
-        const id = document.getElementById('newId').value.trim();
-        if (!id) { alert('Введите номер дела'); return; }
-        if (dela.find(d => d.id === id)) { alert('Дело с таким номером уже существует'); return; }
-        const get = id => document.getElementById(id)?.value.trim() || '';
-        const check = id => document.getElementById(id)?.checked || false;
-        const newDelo = {
-            id,
-            surname: get('newSurname'), name: get('newName'), patronymic: get('newPatronymic'),
-            alias: get('newAlias'), personalNumber: get('newPersonalNumber'),
-            dolz: get('newDolz'), rank: get('newRank'),
-            dop: document.getElementById('newDop')?.value || 'Секретно',
-            qualAgent: check('newQualAgent'), qualSurveillance: check('newQualSurveillance'),
-            qualCrypto: check('newQualCrypto'),
-            notes: get('newNotes'), resolution: get('newResolution'), marks: get('newMarks'),
-            status: document.getElementById('newStatus')?.value || 'Благонадёжен'
-        };
-        dela.push(newDelo);
-        saveDela();
-        render();
-        closeModal();
-    }
-
-    // ===== DOWNLOAD .DOC (Word) =====
-    function downloadDoc(id) {
-        const d = dela.find(x => x.id === id);
-        if (!d) return;
-
-        let grif = '';
-        switch (d.dop) {
-            case 'ДСП': grif = 'Для служебного пользования'; break;
-            case 'Секретно': grif = 'СЕКРЕТНО'; break;
-            case 'Сов. секретно': grif = 'СОВЕРШЕННО СЕКРЕТНО'; break;
-            case 'ОВ': grif = 'ОСОБОЙ ВАЖНОСТИ'; break;
-            default: grif = 'ДЛЯ СЛУЖЕБНОГО ПОЛЬЗОВАНИЯ';
-        }
-        const outNum = `002-П(ОТ)/${d.id}`;
-        const herbHtml = herbImage ?
-            `<img src="${herbImage}" style="width:50px; height:auto; border:2px solid #222; border-radius:4px; background:white; padding:2px;" alt="Герб">` :
-            `<div style="width:50px; height:60px; border:2px solid #222; border-radius:4px; background:white;"></div>`;
-
-        const docHtml = `<!DOCTYPE html>
-<html xmlns:o="urn:schemas-microsoft-com:office:office"
-      xmlns:w="urn:schemas-microsoft-com:office:word"
-      xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-    <meta charset="UTF-8">
-    <title>Личное дело №${d.id}</title>
-    <!--[if gte mso 9]>
-    <xml>
-        <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>100</w:Zoom>
-        </w:WordDocument>
-    </xml>
-    <![endif]-->
-    <style>
-        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; margin: 2cm; background: white; color: #000; }
-        .sheet { width: 100%; position: relative; }
-        .grif-block { float: right; text-align: right; font-weight: bold; font-size: 12pt; letter-spacing: 0.5px; margin-bottom: 10px; }
-        .grif-block .line { border: 2px solid #000; padding: 2px 10px; display: inline-block; margin-top: 4px; background: #fafafa; }
-        .grif-block .ex { font-size: 10pt; font-weight: normal; margin-top: 4px; }
-        .grif-block .out { font-size: 10pt; font-weight: normal; }
-        .header-left { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; width: 70%; }
-        .gerb { flex-shrink: 0; width: 50px; height: 60px; border: 2px solid #222; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: white; padding: 2px; }
-        .org-info { font-size: 11pt; line-height: 1.4; letter-spacing: 0.3px; }
-        .org-info .fsb { font-weight: bold; font-size: 13pt; text-transform: uppercase; }
-        .org-info .ross { font-weight: normal; font-size: 12pt; }
-        .org-info .address { font-size: 10pt; color: #333; margin-top: 2px; }
-        .org-info .uprav { font-weight: bold; margin-top: 3px; font-size: 12pt; text-transform: uppercase; letter-spacing: 0.5px; }
-        .doc-title { text-align: center; font-size: 22pt; font-weight: bold; text-transform: uppercase; margin: 20px 0 10px; letter-spacing: 3px; border-bottom: 2px solid #000; padding-bottom: 8px; }
-        .doc-subtitle { text-align: center; font-size: 14pt; margin-top: -5px; margin-bottom: 20px; font-weight: normal; letter-spacing: 1px; }
-        .content { font-size: 12pt; line-height: 1.5; }
-        .section-title { font-weight: bold; font-size: 13pt; margin: 16px 0 6px; border-bottom: 1px solid #888; padding-bottom: 3px; letter-spacing: 0.5px; }
-        .row { display: flex; align-items: baseline; margin: 4px 0; padding: 2px 0; }
-        .row .label { width: 200px; font-weight: bold; flex-shrink: 0; }
-        .row .value { flex: 1; border-bottom: 1px dotted #aaa; padding-left: 8px; min-height: 1.4em; }
-        .check-group { display: flex; flex-wrap: wrap; gap: 20px; margin: 4px 0 10px; }
-        .check-group span { border: 1px solid #555; padding: 0 10px; background: #fafafa; font-size: 11pt; }
-        .signature-area { margin-top: 30px; display: flex; justify-content: flex-end; align-items: flex-end; gap: 40px; border-top: 1px solid #888; padding-top: 16px; }
-        .signature-left { font-size: 11pt; line-height: 1.6; }
-        .signature-right { text-align: center; width: 250px; }
-        .signature-right .line { border-top: 1px solid #000; padding-top: 4px; margin-top: 4px; font-size: 11pt; }
-        .stamp-round { display: inline-block; border: 2px solid #000; border-radius: 50%; width: 60px; height: 60px; line-height: 60px; text-align: center; font-size: 8pt; font-weight: bold; letter-spacing: 0.5px; background: #f5f0eb; margin-top: 8px; }
-        .clearfix { clear: both; }
-    </style>
-</head>
-<body>
-<div class="sheet">
-    <div class="grif-block">
-        <div class="line">${grif}</div>
-        <div class="ex">Экз. № 1</div>
-        <div class="out">Исходящий № ${outNum}</div>
-    </div>
-    <div class="clearfix"></div>
-
-    <div class="header-left">
-        <div class="gerb">${herbHtml}</div>
-        <div class="org-info">
-            <div class="fsb">ФЕДЕРАЛЬНАЯ СЛУЖБА БЕЗОПАСНОСТИ</div>
-            <div class="ross">РОССИЙСКОЙ ФЕДЕРАЦИИ (ФСБ России)</div>
-            <div class="address">107031, г. Зареченск, ул. Тульская 2</div>
-            <div class="uprav">УПРАВЛЕНИЕ ПО ЛЕНИНГРАДСКОЙ ОБЛАСТИ И ПО ГОРОДУ ЗАРЕЧЕНСК</div>
-        </div>
-    </div>
-    <div class="clearfix"></div>
-
-    <div class="doc-title">ЛИЧНОЕ ДЕЛО № ${d.id}</div>
-    <div class="doc-subtitle">(оперативный псевдоним «${d.alias}»)</div>
-
-    <div class="content">
-        <div class="section-title">I. ОБЩИЕ СВЕДЕНИЯ</div>
-        <div class="row"><span class="label">Фамилия</span><span class="value">${d.surname}</span></div>
-        <div class="row"><span class="label">Имя</span><span class="value">${d.name}</span></div>
-        <div class="row"><span class="label">Отчество</span><span class="value">${d.patronymic || ''}</span></div>
-        <div class="row"><span class="label">Оперативный псевдоним</span><span class="value">${d.alias}</span></div>
-        <div class="row"><span class="label">Личный номер (жетон)</span><span class="value">${d.personalNumber}</span></div>
-
-        <div class="section-title">II. СЛУЖЕБНАЯ ИНФОРМАЦИЯ</div>
-        <div class="row"><span class="label">Подразделение</span><span class="value">Седьмой отдел ТУ ФСБ</span></div>
-        <div class="row"><span class="label">Должность</span><span class="value">${d.dolz}</span></div>
-        <div class="row"><span class="label">Специальное звание</span><span class="value">${d.rank}</span></div>
-        <div class="row"><span class="label">Уровень доступа</span><span class="value">${d.dop}</span></div>
-        <div class="row"><span class="label">Квалификационные отметки</span></div>
-        <div class="check-group">
-            <span>Агентурная: [${d.qualAgent?'✓':' '}]</span>
-            <span>Наружное: [${d.qualSurveillance?'✓':' '}]</span>
-            <span>Шифр.: [${d.qualCrypto?'✓':' '}]</span>
+            </section>
         </div>
 
-        <div class="section-title">III. ОСОБЫЕ ОТМЕТКИ</div>
-        <div class="row"><span class="label"> </span><span class="value" style="border-bottom:1px solid #000; min-height:40px;">${d.notes || '—'}</span></div>
-
-        <div class="section-title">IV. РЕЗОЛЮЦИЯ</div>
-        <div class="row"><span class="label"> </span><span class="value" style="border-bottom:1px solid #000; min-height:40px;">${d.resolution || '—'}</span></div>
-
-        <div class="section-title">V. ОТМЕТКИ О ПРОХОЖДЕНИИ</div>
-        <div class="row"><span class="label"> </span><span class="value" style="border-bottom:1px solid #000; min-height:40px;">${d.marks || '—'}</span></div>
+        <!-- ФУТЕР -->
+        <footer class="footer">
+            <div class="container">
+                АСУЛС — Автоматизированная система учёта личного состава УСБ ТУ ФСБ &copy; 2026
+            </div>
+        </footer>
     </div>
 
-    <div class="signature-area">
-        <div class="signature-left"><div>«___» ______________ 20__ г.</div></div>
-        <div class="signature-right">
-            <div>Начальник Управления</div>
-            <div>по Ленинградской области и г. Зареченск</div>
-            <div>полковник Кудышев К.В.</div>
-            <div class="line">(подпись)</div>
-            <div class="stamp-round">М.П.</div>
+    <!-- МОДАЛЬНОЕ ОКНО ДЛЯ ГРУППОВОГО ДЕЙСТВИЯ -->
+    <div id="groupActionModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="modal-close" id="groupActionClose">&times;</span>
+            <h3 id="groupActionTitle"><i class="fas fa-edit"></i> Изменить статус</h3>
+            <form id="groupActionForm">
+                <div class="form-group">
+                    <label id="groupActionLabel" for="groupActionValue">Новый статус</label>
+                    <input type="text" id="groupActionValue" placeholder="Введите значение">
+                </div>
+                <div id="groupActionError" style="color:#b33c3c; display:none;"></div>
+                <button type="submit" class="btn btn--gold"><i class="fas fa-check"></i> Применить</button>
+            </form>
         </div>
     </div>
-</div>
-</body></html>`;
 
-        const blob = new Blob([docHtml], { type: 'application/msword;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Личное_дело_№${d.id}.doc`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
+    <!-- МОДАЛЬНОЕ ОКНО СМЕНЫ ПАРОЛЯ -->
+    <div id="changePasswordModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="modal-close" id="modalClose">&times;</span>
+            <h3><i class="fas fa-key"></i> Смена пароля</h3>
+            <form id="changePasswordForm">
+                <div class="form-group">
+                    <label for="oldPassword">Старый пароль</label>
+                    <input type="password" id="oldPassword" placeholder="Введите старый пароль" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">Новый пароль</label>
+                    <input type="password" id="newPassword" placeholder="Введите новый пароль" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Подтверждение</label>
+                    <input type="password" id="confirmPassword" placeholder="Подтвердите пароль" required>
+                </div>
+                <div id="changePasswordError" style="color:#b33c3c; display:none;"></div>
+                <button type="submit" class="btn btn--gold"><i class="fas fa-save"></i> Сохранить</button>
+            </form>
+        </div>
+    </div>
 
-    // ===== HERB UPLOAD =====
-    function updateHerb() {
-        const file = document.getElementById('herbUpload').files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                herbImage = e.target.result;
-                document.getElementById('herbPreview').innerHTML = `<img src="${herbImage}" alt="герб">`;
-            };
-            reader.readAsDataURL(file);
-        }
-    }
+    <!-- МОДАЛЬНОЕ ОКНО УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ -->
+    <div id="manageUsersModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="modal-close" id="manageUsersClose">&times;</span>
+            <h3><i class="fas fa-users-cog"></i> Управление пользователями</h3>
+            <div id="userList"></div>
+            <hr style="margin:20px 0;">
+            <form id="addUserForm">
+                <h4>Добавить пользователя</h4>
+                <div class="form-group">
+                    <label for="newUserFullName">ФИО</label>
+                    <input type="text" id="newUserFullName" placeholder="Введите ФИО" required>
+                </div>
+                <div class="form-group">
+                    <label for="newUserPassword">Пароль</label>
+                    <input type="text" id="newUserPassword" placeholder="Введите пароль" required>
+                </div>
+                <div class="form-group">
+                    <label for="newUserRole">Роль</label>
+                    <select id="newUserRole">
+                        <option value="user">Пользователь</option>
+                        <option value="admin">Администратор</option>
+                    </select>
+                </div>
+                <div id="addUserError" style="color:#b33c3c; display:none;"></div>
+                <button type="submit" class="btn btn--gold"><i class="fas fa-user-plus"></i> Добавить</button>
+            </form>
+        </div>
+    </div>
 
-    // ===== AUTH =====
-    function login() {
-        const login = document.getElementById('loginInput').value.trim();
-        const pass = document.getElementById('passInput').value.trim();
-        if (USERS[login] && USERS[login].password === pass) {
-            currentUser = { login, role: USERS[login].role, level: USERS[login].level };
-            document.getElementById('loginStatus').textContent = `● ${currentUser.role}`;
-            document.getElementById('loginStatus').className = 'status logged';
-            document.getElementById('logoutBtn').style.display = 'inline-flex';
-            document.getElementById('loginInput').value = '';
-            document.getElementById('passInput').value = '';
-            updateUIBasedOnRole();
-            render();
-        } else {
-            alert('Неверный логин или пароль');
-        }
-    }
-
-    function logout() {
-        currentUser = null;
-        document.getElementById('loginStatus').textContent = '● ГОСТЬ';
-        document.getElementById('loginStatus').className = 'status guest';
-        document.getElementById('logoutBtn').style.display = 'none';
-        updateUIBasedOnRole();
-        render();
-    }
-
-    function updateUIBasedOnRole() {
-        const addBtn = document.getElementById('addBtn');
-        if (canAdd()) addBtn.style.display = 'inline-flex';
-        else addBtn.style.display = 'none';
-    }
-
-    document.getElementById('modalOverlay').addEventListener('click', function(e) {
-        if (e.target === this) closeModal();
-    });
-
-    loadDela();
-    render();
-    updateUIBasedOnRole();
-
-    document.getElementById('passInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') login();
-    });
-</script>
+    <script src="app.js"></script>
 </body>
 </html>
