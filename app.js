@@ -557,19 +557,21 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== ОТЧЁТЫ (PDF) — ТОЛЬКО jsPDF, БЕЗ html2pdf =====
+// ===== ОТЧЁТЫ (PDF) — ПРОВЕРКА НАЛИЧИЯ jsPDF =====
 function generateReport(emp) {
+    if (typeof window.jspdf === 'undefined') {
+        alert('Библиотека jsPDF не загружена. Проверьте подключение в index.html.');
+        return;
+    }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
     
-    // Заголовок
     doc.setFont('times', 'bold');
     doc.setFontSize(18);
     doc.setTextColor('#0b1a2e');
     doc.text('ОТЧЁТ О СОТРУДНИКЕ', 105, 20, { align: 'center' });
     
-    // Линия
     doc.setDrawColor(212, 175, 55);
     doc.line(20, 25, 190, 25);
     
@@ -578,7 +580,6 @@ function generateReport(emp) {
     doc.setFontSize(12);
     doc.setTextColor('#000000');
     
-    // Данные
     const fields = [
         ['ФИО', fio],
         ['Дата рождения', emp.birthDate || '—'],
@@ -600,7 +601,6 @@ function generateReport(emp) {
     ];
     
     fields.forEach(([label, value]) => {
-        // Проверяем, не вышли ли за пределы страницы
         if (y > 270) {
             doc.addPage();
             y = 20;
@@ -611,12 +611,9 @@ function generateReport(emp) {
         const maxWidth = 130;
         const lines = doc.splitTextToSize(value, maxWidth);
         doc.text(lines, 65, y);
-        y += 10 * lines.length;
-        // Небольшой отступ между полями
-        y += 2;
+        y += 10 * lines.length + 2;
     });
     
-    // Подвал
     doc.setFont('times', 'italic');
     doc.setFontSize(10);
     doc.setTextColor('#7a8a9e');
@@ -631,6 +628,10 @@ function printEmployeeCard(emp) {
 }
 
 function generateSummaryReport() {
+    if (typeof window.jspdf === 'undefined') {
+        alert('Библиотека jsPDF не загружена. Проверьте подключение в index.html.');
+        return;
+    }
     if (filteredEmployees.length === 0) {
         alert('Нет данных для отчёта');
         return;
@@ -645,16 +646,15 @@ function generateSummaryReport() {
     doc.setDrawColor(212, 175, 55);
     doc.line(20, 20, 276, 20);
     
-    // Заголовки таблицы
     const headers = ['№', 'ФИО', 'Подразделение', 'Звание', 'Должность', 'Статус'];
     const colWidths = [10, 60, 40, 30, 40, 30];
-    let x = 20;
     let y = 28;
     doc.setFillColor(26, 47, 68);
     doc.rect(20, y-6, 256, 8, 'F');
     doc.setFont('times', 'bold');
     doc.setFontSize(11);
     doc.setTextColor('#ffffff');
+    let x = 20;
     headers.forEach((h, i) => {
         doc.text(h, x + (i === 0 ? 0 : 2), y);
         x += colWidths[i];
@@ -684,7 +684,6 @@ function generateSummaryReport() {
         if (y > 190) {
             doc.addPage();
             y = 20;
-            // повтор заголовков на новой странице
             doc.setFillColor(26, 47, 68);
             doc.rect(20, y-6, 256, 8, 'F');
             doc.setFont('times', 'bold');
