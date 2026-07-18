@@ -1128,3 +1128,20 @@ document.addEventListener('DOMContentLoaded', function() {
     loginScreen.style.display = 'flex';
     appContent.style.display = 'none';
 });
+
+// ===== ОТЧЁТЫ (PDF) — html2pdf =====
+function generateReport(emp) {
+    if (typeof html2pdf === 'undefined') {
+        alert('Библиотека html2pdf не загружена. Попробуйте обновить страницу или проверьте подключение.');
+        return;
+    }
+    // ... (весь код из предыдущего ответа)
+}
+
+function generateSummaryReport() {
+    if (typeof html2pdf === 'undefined') {
+        alert('Библиотека html2pdf не загружена. Попробуйте обновить страницу или проверьте подключение.');
+        return;
+    }
+    // ... (весь код из предыдущего ответа)
+}
