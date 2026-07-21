@@ -7,7 +7,7 @@ const firebaseConfig = {
     storageBucket: "aculs-a5fe1.firebasestorage.app",
     messagingSenderId: "176811002068",
     appId: "1:176811002068:web:ccb65f61e370b809c5d341",
-    measurementId: "G-SL4YS8CEKE"  // можно удалить, но оставим
+    measurementId: "G-SL4YS8CEKE"
 };
 
 // ===== ИНИЦИАЛИЗАЦИЯ FIREBASE =====
@@ -15,17 +15,14 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const auth = firebase.auth();
 
-// Анонимная авторизация (даёт доступ к базе)
+// Анонимная авторизация
 auth.signInAnonymously()
-    .then(() => {
-        console.log('Анонимная авторизация успешна');
-    })
+    .then(() => console.log('✅ Анонимная авторизация успешна'))
     .catch(error => {
         console.error('Ошибка анонимной авторизации:', error);
         alert('Ошибка подключения к Firebase. Проверьте интернет и настройки.');
     });
 
-// Ссылка на узел "employees" в базе
 const employeesRef = database.ref('employees');
 
 // ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (локально) =====
@@ -87,7 +84,6 @@ function loadData() {
         const data = snapshot.val();
         if (data) {
             employees = Object.values(data);
-            // Добавляем ключи как id, если их нет
             employees = employees.map((emp, index) => {
                 if (!emp.id) emp.id = Object.keys(data)[index];
                 return emp;
@@ -257,12 +253,9 @@ function populateDatalist(id, values) {
     });
 }
 
-// ===== СТАТИСТИКА И ДИАГРАММЫ =====
-let deptChartInstance = null;
-let rankChartInstance = null;
-let statusChartInstance = null;
-
+// ===== СТАТИСТИКА (КАРТОЧКИ) =====
 function updateStats(list) {
+    // Обновляем цифровые карточки
     const total = document.getElementById('totalCount');
     const active = document.getElementById('activeCount');
     const inactive = document.getElementById('inactiveCount');
@@ -280,119 +273,46 @@ function updateStats(list) {
     if (inactive) inactive.textContent = vacationCount + missionCount;
     if (fired) fired.textContent = firedCount;
 
-    // Подразделения – каждый с новой строки
+    // Подразделения – карточки
     const deptCount = {};
     list.forEach(emp => {
         const d = emp.department || 'Не указано';
         deptCount[d] = (deptCount[d] || 0) + 1;
     });
-    const deptStr = Object.entries(deptCount)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join('<br>');
-    const deptEl = document.getElementById('deptStats');
-    if (deptEl) deptEl.innerHTML = deptStr || '—';
+    renderStatsCards('deptCards', deptCount);
 
+    // Звания – карточки
     const rankCount = {};
     list.forEach(emp => {
         const r = emp.rank || 'Не указано';
         rankCount[r] = (rankCount[r] || 0) + 1;
     });
-    const rankStr = Object.entries(rankCount)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join('<br>');
-    const rankEl = document.getElementById('rankStats');
-    if (rankEl) rankEl.innerHTML = rankStr || '—';
+    renderStatsCards('rankCards', rankCount);
 
+    // Статусы – карточки
     const statusCount = {};
     list.forEach(emp => {
         const s = emp.status || 'Не указано';
         statusCount[s] = (statusCount[s] || 0) + 1;
     });
-    const statusStr = Object.entries(statusCount)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join('<br>');
-    const statusEl = document.getElementById('statusStats');
-    if (statusEl) statusEl.innerHTML = statusStr || '—';
-
-    updateCharts(list);
+    renderStatsCards('statusCards', statusCount);
 }
 
-function updateCharts(list) {
-    const deptCount = {};
-    list.forEach(emp => {
-        const d = emp.department || 'Не указано';
-        deptCount[d] = (deptCount[d] || 0) + 1;
+function renderStatsCards(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    // Сортируем по убыванию чисел
+    const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+    sorted.forEach(([label, value]) => {
+        const card = document.createElement('div');
+        card.className = 'stat-card-item';
+        card.innerHTML = `
+            <span class="stat-card-label">${label}</span>
+            <span class="stat-card-value">${value}</span>
+        `;
+        container.appendChild(card);
     });
-    const deptLabels = Object.keys(deptCount);
-    const deptData = Object.values(deptCount);
-    createOrUpdateChart('deptChart', deptLabels, deptData, 'bar', 'Подразделения');
-
-    const rankCount = {};
-    list.forEach(emp => {
-        const r = emp.rank || 'Не указано';
-        rankCount[r] = (rankCount[r] || 0) + 1;
-    });
-    const rankLabels = Object.keys(rankCount);
-    const rankData = Object.values(rankCount);
-    createOrUpdateChart('rankChart', rankLabels, rankData, 'pie', 'Звания');
-
-    const statusCount = {};
-    list.forEach(emp => {
-        const s = emp.status || 'Не указано';
-        statusCount[s] = (statusCount[s] || 0) + 1;
-    });
-    const statusLabels = Object.keys(statusCount);
-    const statusData = Object.values(statusCount);
-    createOrUpdateChart('statusChart', statusLabels, statusData, 'doughnut', 'Статусы');
-}
-
-function createOrUpdateChart(canvasId, labels, data, type, title) {
-    const ctx = document.getElementById(canvasId);
-    if (!ctx) return;
-    let instance = null;
-    if (canvasId === 'deptChart') instance = deptChartInstance;
-    else if (canvasId === 'rankChart') instance = rankChartInstance;
-    else if (canvasId === 'statusChart') instance = statusChartInstance;
-    if (instance) {
-        instance.destroy();
-    }
-
-    const colors = [
-        '#2c6b3c', '#d4af37', '#1a3a5c', '#8e44ad', '#e67e22',
-        '#2ecc71', '#3498db', '#e74c3c', '#f1c40f', '#1abc9c',
-        '#9b59b6', '#34495e', '#e67e22', '#27ae60', '#2980b9'
-    ];
-    const backgroundColors = labels.map((_, i) => colors[i % colors.length]);
-    const borderColors = backgroundColors.map(c => c);
-
-    const newChart = new Chart(ctx, {
-        type: type,
-        data: {
-            labels: labels,
-            datasets: [{
-                label: title,
-                data: data,
-                backgroundColor: backgroundColors,
-                borderColor: borderColors,
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'bottom',
-                    labels: { font: { size: 10 } }
-                }
-            }
-        }
-    });
-
-    if (canvasId === 'deptChart') deptChartInstance = newChart;
-    else if (canvasId === 'rankChart') rankChartInstance = newChart;
-    else if (canvasId === 'statusChart') statusChartInstance = newChart;
 }
 
 // ===== ОТРИСОВКА ТАБЛИЦЫ =====
@@ -1026,7 +946,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (importExcelBtn) importExcelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
             if (importJsonBtn) importJsonBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
-            // Загружаем данные из Firebase (уже подписаны через on)
             loadData();
             if (loginError) loginError.style.display = 'none';
             if (loginFullName) loginFullName.value = '';
@@ -1052,7 +971,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (loginPassword) loginPassword.value = '';
         if (loginMasterPassword) loginMasterPassword.value = '';
         if (loginError) loginError.style.display = 'none';
-        // Отписываемся от Firebase (опционально)
         employeesRef.off();
     }
 
