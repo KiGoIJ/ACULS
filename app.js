@@ -1,4 +1,34 @@
-// ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ И МАСТЕР-ПАРОЛЕМ =====
+// ===== FIREBASE КОНФИГУРАЦИЯ (ВАШИ ДАННЫЕ) =====
+const firebaseConfig = {
+    apiKey: "AIzaSyA2RxdMUGwhXBe-rpZjQQfDYG1T9UMmaV0",
+    authDomain: "aculs-a5fe1.firebaseapp.com",
+    databaseURL: "https://aculs-a5fe1-default-rtdb.firebaseio.com",
+    projectId: "aculs-a5fe1",
+    storageBucket: "aculs-a5fe1.firebasestorage.app",
+    messagingSenderId: "176811002068",
+    appId: "1:176811002068:web:ccb65f61e370b809c5d341",
+    measurementId: "G-SL4YS8CEKE"  // можно удалить, но оставим
+};
+
+// ===== ИНИЦИАЛИЗАЦИЯ FIREBASE =====
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+const auth = firebase.auth();
+
+// Анонимная авторизация (даёт доступ к базе)
+auth.signInAnonymously()
+    .then(() => {
+        console.log('Анонимная авторизация успешна');
+    })
+    .catch(error => {
+        console.error('Ошибка анонимной авторизации:', error);
+        alert('Ошибка подключения к Firebase. Проверьте интернет и настройки.');
+    });
+
+// Ссылка на узел "employees" в базе
+const employeesRef = database.ref('employees');
+
+// ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (локально) =====
 const USERS_KEY = 'asuls_users';
 const MASTER_KEY = 'asuls_master_password';
 const DEFAULT_MASTER = '123456';
@@ -47,20 +77,43 @@ function authenticate(fullName, password, masterPassword) {
 // ===== СОСТОЯНИЕ =====
 let currentUser = null;
 let isAdmin = false;
-const STORAGE_KEY = 'asuls_fsb_data';
 let employees = [];
 let editingId = null;
 let filteredEmployees = [];
 
-// ===== ЗАГРУЗКА / СОХРАНЕНИЕ ДАННЫХ =====
+// ===== ЗАГРУЗКА ДАННЫХ ИЗ FIREBASE =====
 function loadData() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    employees = raw ? JSON.parse(raw) : [];
-    filteredEmployees = [...employees];
+    employeesRef.on('value', snapshot => {
+        const data = snapshot.val();
+        if (data) {
+            employees = Object.values(data);
+            // Добавляем ключи как id, если их нет
+            employees = employees.map((emp, index) => {
+                if (!emp.id) emp.id = Object.keys(data)[index];
+                return emp;
+            });
+        } else {
+            employees = [];
+        }
+        filteredEmployees = [...employees];
+        applyFilters();
+        populateFilterOptions();
+        if (isAdmin) {
+            const personalNumber = document.getElementById('personalNumber');
+            if (personalNumber) personalNumber.value = generatePersonalNumber();
+        }
+    });
 }
 
+// ===== СОХРАНЕНИЕ ДАННЫХ В FIREBASE =====
 function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
+    const data = {};
+    employees.forEach(emp => {
+        data[emp.id] = emp;
+    });
+    employeesRef.set(data).catch(error => {
+        alert('Ошибка сохранения: ' + error.message);
+    });
 }
 
 // ===== ГЕНЕРАЦИЯ ЛИЧНОГО НОМЕРА =====
@@ -210,7 +263,6 @@ let rankChartInstance = null;
 let statusChartInstance = null;
 
 function updateStats(list) {
-    // Обновляем цифры
     const total = document.getElementById('totalCount');
     const active = document.getElementById('activeCount');
     const inactive = document.getElementById('inactiveCount');
@@ -228,12 +280,44 @@ function updateStats(list) {
     if (inactive) inactive.textContent = vacationCount + missionCount;
     if (fired) fired.textContent = firedCount;
 
-    // Обновляем диаграммы
+    // Подразделения – каждый с новой строки
+    const deptCount = {};
+    list.forEach(emp => {
+        const d = emp.department || 'Не указано';
+        deptCount[d] = (deptCount[d] || 0) + 1;
+    });
+    const deptStr = Object.entries(deptCount)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('<br>');
+    const deptEl = document.getElementById('deptStats');
+    if (deptEl) deptEl.innerHTML = deptStr || '—';
+
+    const rankCount = {};
+    list.forEach(emp => {
+        const r = emp.rank || 'Не указано';
+        rankCount[r] = (rankCount[r] || 0) + 1;
+    });
+    const rankStr = Object.entries(rankCount)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('<br>');
+    const rankEl = document.getElementById('rankStats');
+    if (rankEl) rankEl.innerHTML = rankStr || '—';
+
+    const statusCount = {};
+    list.forEach(emp => {
+        const s = emp.status || 'Не указано';
+        statusCount[s] = (statusCount[s] || 0) + 1;
+    });
+    const statusStr = Object.entries(statusCount)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('<br>');
+    const statusEl = document.getElementById('statusStats');
+    if (statusEl) statusEl.innerHTML = statusStr || '—';
+
     updateCharts(list);
 }
 
 function updateCharts(list) {
-    // Подразделения
     const deptCount = {};
     list.forEach(emp => {
         const d = emp.department || 'Не указано';
@@ -243,7 +327,6 @@ function updateCharts(list) {
     const deptData = Object.values(deptCount);
     createOrUpdateChart('deptChart', deptLabels, deptData, 'bar', 'Подразделения');
 
-    // Звания
     const rankCount = {};
     list.forEach(emp => {
         const r = emp.rank || 'Не указано';
@@ -253,7 +336,6 @@ function updateCharts(list) {
     const rankData = Object.values(rankCount);
     createOrUpdateChart('rankChart', rankLabels, rankData, 'pie', 'Звания');
 
-    // Статусы
     const statusCount = {};
     list.forEach(emp => {
         const s = emp.status || 'Не указано';
@@ -267,7 +349,6 @@ function updateCharts(list) {
 function createOrUpdateChart(canvasId, labels, data, type, title) {
     const ctx = document.getElementById(canvasId);
     if (!ctx) return;
-    // Если экземпляр уже существует – уничтожить
     let instance = null;
     if (canvasId === 'deptChart') instance = deptChartInstance;
     else if (canvasId === 'rankChart') instance = rankChartInstance;
@@ -276,7 +357,6 @@ function createOrUpdateChart(canvasId, labels, data, type, title) {
         instance.destroy();
     }
 
-    // Цвета
     const colors = [
         '#2c6b3c', '#d4af37', '#1a3a5c', '#8e44ad', '#e67e22',
         '#2ecc71', '#3498db', '#e74c3c', '#f1c40f', '#1abc9c',
@@ -310,7 +390,6 @@ function createOrUpdateChart(canvasId, labels, data, type, title) {
         }
     });
 
-    // Сохраняем экземпляр
     if (canvasId === 'deptChart') deptChartInstance = newChart;
     else if (canvasId === 'rankChart') rankChartInstance = newChart;
     else if (canvasId === 'statusChart') statusChartInstance = newChart;
@@ -357,7 +436,6 @@ function renderTable(data) {
         tbody.appendChild(tr);
     });
 
-    // Обработчики для админа
     if (isAdmin) {
         document.querySelectorAll('.delete').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -365,8 +443,6 @@ function renderTable(data) {
                 if (confirm('Удалить сотрудника?')) {
                     employees = employees.filter(emp => emp.id !== id);
                     saveData();
-                    applyFilters();
-                    populateFilterOptions();
                 }
             });
         });
@@ -404,7 +480,6 @@ function renderTable(data) {
         }
     }
 
-    // Обработчики для всех пользователей
     document.querySelectorAll('.print').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.currentTarget.dataset.id;
@@ -612,10 +687,7 @@ if (employeeForm) {
             employees.push(newEmp);
         }
         saveData();
-        populateFilterOptions();
-        applyFilters();
         resetForm();
-        alert('Сотрудник сохранён');
     });
 }
 
@@ -686,8 +758,6 @@ if (groupForm) {
         });
         if (changed > 0) {
             saveData();
-            populateFilterOptions();
-            applyFilters();
             const modal = document.getElementById('groupActionModal');
             if (modal) modal.style.display = 'none';
             document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
@@ -720,7 +790,7 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== PDF ОТЧЁТЫ С ИСПОЛЬЗОВАНИЕМ pdfmake =====
+// ===== PDF ОТЧЁТЫ =====
 function generateReport(emp) {
     try {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
@@ -884,8 +954,6 @@ function importFromExcel(file) {
                     if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
                         employees = imported;
                         saveData();
-                        populateFilterOptions();
-                        applyFilters();
                         alert('Импорт выполнен успешно!');
                     }
                 } else {
@@ -903,7 +971,6 @@ function importFromExcel(file) {
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', function() {
-    // Все элементы получаем с проверкой
     const loginScreen = document.getElementById('loginScreen');
     const appContent = document.getElementById('appContent');
     const loginForm = document.getElementById('loginForm');
@@ -959,13 +1026,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (importExcelBtn) importExcelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
             if (importJsonBtn) importJsonBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
+            // Загружаем данные из Firebase (уже подписаны через on)
             loadData();
-            populateFilterOptions();
-            if (isAdmin) {
-                const personalNumber = document.getElementById('personalNumber');
-                if (personalNumber) personalNumber.value = generatePersonalNumber();
-            }
-            applyFilters();
             if (loginError) loginError.style.display = 'none';
             if (loginFullName) loginFullName.value = '';
             if (loginPassword) loginPassword.value = '';
@@ -990,6 +1052,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (loginPassword) loginPassword.value = '';
         if (loginMasterPassword) loginMasterPassword.value = '';
         if (loginError) loginError.style.display = 'none';
+        // Отписываемся от Firebase (опционально)
+        employeesRef.off();
     }
 
     if (loginForm) {
@@ -1000,7 +1064,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (logoutBtn) logoutBtn.addEventListener('click', logout);
 
-    // Фильтры
     const filterEls = [filterDepartment, filterRank, filterStatus, searchField, searchInput];
     filterEls.forEach(el => {
         if (el) {
@@ -1019,7 +1082,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Экспорт/импорт
     if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportToExcel);
     if (importExcelBtn && importExcelInput) {
         importExcelBtn.addEventListener('click', () => importExcelInput.click());
@@ -1052,8 +1114,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
                             employees = imported;
                             saveData();
-                            populateFilterOptions();
-                            applyFilters();
                             alert('Импорт выполнен успешно');
                         }
                     }
@@ -1067,7 +1127,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (summaryReportBtn) summaryReportBtn.addEventListener('click', generateSummaryReport);
 
-    // Смена пароля
     if (changePasswordBtn && changePasswordModal && modalClose && changePasswordForm) {
         changePasswordBtn.addEventListener('click', function() {
             changePasswordModal.style.display = 'flex';
@@ -1124,7 +1183,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Управление пользователями (админ)
     if (manageUsersBtn && manageUsersModal && manageUsersClose && userListDiv && addUserForm) {
         manageUsersBtn.addEventListener('click', function() {
             if (!isAdmin) return;
@@ -1194,7 +1252,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Начальное состояние
     if (loginScreen) loginScreen.style.display = 'flex';
     if (appContent) appContent.style.display = 'none';
 });
