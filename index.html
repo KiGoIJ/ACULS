@@ -13,18 +13,15 @@
     <!-- pdfmake (PDF с кириллицей) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-    <!-- Chart.js (диаграммы) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Firebase Compat SDK (для работы с Realtime Database) -->
+    <!-- Firebase Compat SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-    <!-- Подключаем стили -->
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-    <!-- ===== ЭКРАН ВХОДА ===== -->
+    <!-- ЭКРАН ВХОДА -->
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
             <div class="login-logo">
@@ -52,7 +49,7 @@
         </div>
     </div>
 
-    <!-- ===== ОСНОВНОЙ КОНТЕНТ (скрыт до входа) ===== -->
+    <!-- ОСНОВНОЙ КОНТЕНТ -->
     <div id="appContent" style="display:none;">
 
         <!-- ШАПКА -->
@@ -83,6 +80,8 @@
             <!-- СТАТИСТИКА -->
             <section class="card stats-card">
                 <h2 class="card__title"><i class="fas fa-chart-pie"></i> Статистика</h2>
+
+                <!-- Верхние 4 карточки -->
                 <div class="stats-grid" id="statsContainer">
                     <div class="stat-item">
                         <i class="fas fa-users stat-icon" style="color:#2c6b3c;"></i>
@@ -106,34 +105,20 @@
                     </div>
                 </div>
 
-                <div class="stats-detail-grid">
-                    <div class="stat-detail-item">
-                        <span class="stat-detail-label">Подразделения</span>
-                        <span class="stat-value" id="deptStats">—</span>
-                    </div>
-                    <div class="stat-detail-item">
-                        <span class="stat-detail-label">Звания</span>
-                        <span class="stat-value" id="rankStats">—</span>
-                    </div>
-                    <div class="stat-detail-item">
-                        <span class="stat-detail-label">Статусы</span>
-                        <span class="stat-value" id="statusStats">—</span>
-                    </div>
+                <!-- Карточки категорий -->
+                <div class="stats-category">
+                    <h3 class="stats-category-title">Подразделения</h3>
+                    <div class="stats-cards-grid" id="deptCards"></div>
                 </div>
 
-                <div class="charts-grid">
-                    <div class="chart-box">
-                        <h3>Подразделения</h3>
-                        <canvas id="deptChart" width="300" height="200"></canvas>
-                    </div>
-                    <div class="chart-box">
-                        <h3>Звания</h3>
-                        <canvas id="rankChart" width="300" height="200"></canvas>
-                    </div>
-                    <div class="chart-box">
-                        <h3>Статусы</h3>
-                        <canvas id="statusChart" width="300" height="200"></canvas>
-                    </div>
+                <div class="stats-category">
+                    <h3 class="stats-category-title">Звания</h3>
+                    <div class="stats-cards-grid" id="rankCards"></div>
+                </div>
+
+                <div class="stats-category">
+                    <h3 class="stats-category-title">Статусы</h3>
+                    <div class="stats-cards-grid" id="statusCards"></div>
                 </div>
             </section>
 
@@ -307,7 +292,7 @@
 
     </div> <!-- конец #appContent -->
 
-    <!-- МОДАЛЬНЫЕ ОКНА -->
+    <!-- МОДАЛЬНЫЕ ОКНА (без изменений) -->
     <div id="changePasswordModal" class="modal" style="display:none;">
         <div class="modal-content">
             <span class="modal-close" id="modalClose">&times;</span>
