@@ -262,40 +262,46 @@ function updateStats(list) {
     const fired = document.getElementById('firedCount');
     if (total) total.textContent = list.length;
 
-    let activeCount = 0, vacationCount = 0, missionCount = 0, firedCount = 0;
+    // ---- Статусы (нормализация) ----
+    const statusCount = {};
     list.forEach(emp => {
-        if (emp.status === 'действует') activeCount++;
-        else if (emp.status === 'отпуск') vacationCount++;
-        else if (emp.status === 'командировка') missionCount++;
-        else if (emp.status === 'уволен') firedCount++;
+        let s = (emp.status || 'Не указано').trim();
+        const key = s.toLowerCase();
+        if (!statusCount[key]) {
+            statusCount[key] = { count: 0, display: s };
+        }
+        statusCount[key].count++;
     });
+    const activeCount = statusCount['действует']?.count || 0;
+    const vacationCount = statusCount['отпуск']?.count || 0;
+    const missionCount = statusCount['командировка']?.count || 0;
+    const firedCount = statusCount['уволен']?.count || 0;
     if (active) active.textContent = activeCount;
     if (inactive) inactive.textContent = vacationCount + missionCount;
     if (fired) fired.textContent = firedCount;
 
-    // Подразделения – карточки
+    // ---- Подразделения ----
     const deptCount = {};
     list.forEach(emp => {
-        const d = emp.department || 'Не указано';
+        let d = (emp.department || 'Не указано').trim();
         deptCount[d] = (deptCount[d] || 0) + 1;
     });
     renderStatsCards('deptCards', deptCount);
 
-    // Звания – карточки
+    // ---- Звания ----
     const rankCount = {};
     list.forEach(emp => {
-        const r = emp.rank || 'Не указано';
+        let r = (emp.rank || 'Не указано').trim();
         rankCount[r] = (rankCount[r] || 0) + 1;
     });
     renderStatsCards('rankCards', rankCount);
 
-    // Статусы – карточки
-    const statusCount = {};
-    list.forEach(emp => {
-        const s = emp.status || 'Не указано';
-        statusCount[s] = (statusCount[s] || 0) + 1;
+    // ---- Статусы (карточки) ----
+    const statusDisplay = {};
+    Object.keys(statusCount).forEach(key => {
+        statusDisplay[statusCount[key].display] = statusCount[key].count;
     });
-    renderStatsCards('statusCards', statusCount);
+    renderStatsCards('statusCards', statusDisplay);
 }
 
 function renderStatsCards(containerId, data) {
