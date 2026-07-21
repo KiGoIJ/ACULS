@@ -564,3 +564,67 @@ table td:first-child input[type="checkbox"] {
         margin-left: 0 !important;
     }
 }
+
+/* ===== СТАТИСТИКА С ДИАГРАММАМИ ===== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+.stat-item {
+    background: #f8fafc;
+    padding: 16px 20px;
+    border-radius: 8px;
+    border-left: 4px solid #d4af37;
+    text-align: center;
+    position: relative;
+}
+.stat-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 6px;
+}
+.stat-label {
+    font-size: 0.9rem;
+    color: #5a6a7a;
+    display: block;
+}
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0b1a2e;
+}
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    margin-top: 10px;
+}
+.chart-box {
+    background: #ffffff;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.chart-box h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+    color: #1a2f44;
+    margin-bottom: 10px;
+}
+.chart-box canvas {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Адаптив */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
