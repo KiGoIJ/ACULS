@@ -47,12 +47,12 @@ function authenticate(fullName, password, masterPassword) {
 // ===== СОСТОЯНИЕ =====
 let currentUser = null;
 let isAdmin = false;
-const STORAGE_KEY = 'asuls_tu_data';
+const STORAGE_KEY = 'asuls_fsb_data';
 let employees = [];
 let editingId = null;
 let filteredEmployees = [];
 
-// ===== ЗАГРУЗКА / СОХРАНЕНИЕ =====
+// ===== ЗАГРУЗКА / СОХРАНЕНИЕ ДАННЫХ =====
 function loadData() {
     const raw = localStorage.getItem(STORAGE_KEY);
     employees = raw ? JSON.parse(raw) : [];
@@ -75,7 +75,7 @@ function generatePersonalNumber() {
     return year + String(maxNum + 1).padStart(4, '0');
 }
 
-// ===== ВАЛИДАЦИЯ =====
+// ===== ВАЛИДАЦИЯ ПОЛЕЙ =====
 function validateField(input) {
     const id = input.id;
     const value = input.value.trim();
@@ -109,41 +109,46 @@ function validateField(input) {
 
 // ===== ФИЛЬТРАЦИЯ =====
 function applyFilters() {
-    const dept = document.getElementById('filterDepartment').value;
-    const rank = document.getElementById('filterRank').value;
-    const status = document.getElementById('filterStatus').value;
-    const searchField = document.getElementById('searchField').value;
-    const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
+    const filterDepartment = document.getElementById('filterDepartment');
+    const filterRank = document.getElementById('filterRank');
+    const filterStatus = document.getElementById('filterStatus');
+    const searchField = document.getElementById('searchField');
+    const searchInput = document.getElementById('searchInput');
+    if (!filterDepartment || !filterRank || !filterStatus || !searchField || !searchInput) return;
+
+    const dept = filterDepartment.value;
+    const rank = filterRank.value;
+    const status = filterStatus.value;
+    const field = searchField.value;
+    const text = searchInput.value.toLowerCase().trim();
 
     filteredEmployees = employees.filter(emp => {
         let match = true;
         if (dept && emp.department !== dept) match = false;
         if (rank && emp.rank !== rank) match = false;
         if (status && emp.status !== status) match = false;
-        if (searchText) {
+        if (text) {
             const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.toLowerCase();
             let fieldMatch = false;
-            if (searchField === 'all') {
-                fieldMatch = fio.includes(searchText) ||
-                             (emp.department || '').toLowerCase().includes(searchText) ||
-                             (emp.rank || '').toLowerCase().includes(searchText) ||
-                             (emp.position || '').toLowerCase().includes(searchText) ||
-                             (emp.status || '').toLowerCase().includes(searchText) ||
-                             (emp.personalNumber || '').toLowerCase().includes(searchText) ||
-                             (emp.alias || '').toLowerCase().includes(searchText) ||
-                             (emp.dop || '').toLowerCase().includes(searchText);
-            } else if (searchField === 'fio') {
-                fieldMatch = fio.includes(searchText);
-            } else if (searchField === 'department') {
-                fieldMatch = (emp.department || '').toLowerCase().includes(searchText);
-            } else if (searchField === 'rank') {
-                fieldMatch = (emp.rank || '').toLowerCase().includes(searchText);
-            } else if (searchField === 'position') {
-                fieldMatch = (emp.position || '').toLowerCase().includes(searchText);
-            } else if (searchField === 'status') {
-                fieldMatch = (emp.status || '').toLowerCase().includes(searchText);
-            } else if (searchField === 'personalNumber') {
-                fieldMatch = (emp.personalNumber || '').toLowerCase().includes(searchText);
+            if (field === 'all') {
+                fieldMatch = fio.includes(text) ||
+                             (emp.department || '').toLowerCase().includes(text) ||
+                             (emp.rank || '').toLowerCase().includes(text) ||
+                             (emp.position || '').toLowerCase().includes(text) ||
+                             (emp.status || '').toLowerCase().includes(text) ||
+                             (emp.personalNumber || '').toLowerCase().includes(text);
+            } else if (field === 'fio') {
+                fieldMatch = fio.includes(text);
+            } else if (field === 'department') {
+                fieldMatch = (emp.department || '').toLowerCase().includes(text);
+            } else if (field === 'rank') {
+                fieldMatch = (emp.rank || '').toLowerCase().includes(text);
+            } else if (field === 'position') {
+                fieldMatch = (emp.position || '').toLowerCase().includes(text);
+            } else if (field === 'status') {
+                fieldMatch = (emp.status || '').toLowerCase().includes(text);
+            } else if (field === 'personalNumber') {
+                fieldMatch = (emp.personalNumber || '').toLowerCase().includes(text);
             }
             if (!fieldMatch) match = false;
         }
@@ -154,7 +159,7 @@ function applyFilters() {
     updateSelectedCount();
 }
 
-// ===== ОБНОВЛЕНИЕ СПИСКОВ ДЛЯ ФИЛЬТРОВ И DATALIST =====
+// ===== ОБНОВЛЕНИЕ СПИСКОВ =====
 function populateFilterOptions() {
     const deptSet = new Set();
     const rankSet = new Set();
@@ -199,39 +204,36 @@ function populateDatalist(id, values) {
     });
 }
 
-// ===== СТАТИСТИКА С ТЕГАМИ =====
+// ===== СТАТИСТИКА =====
 function updateStats(list) {
-    document.getElementById('totalCount').textContent = list.length;
+    const total = document.getElementById('totalCount');
+    const deptStats = document.getElementById('deptStats');
+    const rankStats = document.getElementById('rankStats');
+    const statusStats = document.getElementById('statusStats');
+    if (!total || !deptStats || !rankStats || !statusStats) return;
+
+    total.textContent = list.length;
 
     const deptCount = {};
     list.forEach(emp => {
         const d = emp.department || 'Не указано';
         deptCount[d] = (deptCount[d] || 0) + 1;
     });
-    const deptHtml = Object.entries(deptCount)
-        .map(([k, v]) => `<span class="stat-tag">${k}: ${v}</span>`)
-        .join(' ');
-    document.getElementById('deptStats').innerHTML = deptHtml || '—';
+    deptStats.textContent = Object.entries(deptCount).map(([k, v]) => `${k}: ${v}`).join('; ') || '—';
 
     const rankCount = {};
     list.forEach(emp => {
         const r = emp.rank || 'Не указано';
         rankCount[r] = (rankCount[r] || 0) + 1;
     });
-    const rankHtml = Object.entries(rankCount)
-        .map(([k, v]) => `<span class="stat-tag">${k}: ${v}</span>`)
-        .join(' ');
-    document.getElementById('rankStats').innerHTML = rankHtml || '—';
+    rankStats.textContent = Object.entries(rankCount).map(([k, v]) => `${k}: ${v}`).join('; ') || '—';
 
     const statusCount = {};
     list.forEach(emp => {
         const s = emp.status || 'Не указано';
         statusCount[s] = (statusCount[s] || 0) + 1;
     });
-    const statusHtml = Object.entries(statusCount)
-        .map(([k, v]) => `<span class="stat-tag">${k}: ${v}</span>`)
-        .join(' ');
-    document.getElementById('statusStats').innerHTML = statusHtml || '—';
+    statusStats.textContent = Object.entries(statusCount).map(([k, v]) => `${k}: ${v}`).join('; ') || '—';
 }
 
 // ===== ОТРИСОВКА ТАБЛИЦЫ =====
@@ -243,7 +245,11 @@ function renderTable(data) {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
         const tr = document.createElement('tr');
         const hasPhoto = emp.photo && emp.photo.length > 100;
-        const statusClass = emp.status || 'active';
+        let statusClass = '';
+        if (emp.status === 'действует') statusClass = 'active';
+        else if (emp.status === 'отпуск') statusClass = 'vacation';
+        else if (emp.status === 'командировка') statusClass = 'mission';
+        else if (emp.status === 'уволен') statusClass = 'fired';
 
         tr.innerHTML = `
             <td><input type="checkbox" class="row-checkbox" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} /></td>
@@ -254,7 +260,12 @@ function renderTable(data) {
             <td>${emp.department || ''}</td>
             <td>${emp.rank || ''}</td>
             <td>${emp.position || ''}</td>
-            <td><span class="status-badge ${statusClass}">${emp.status || '—'}</span></td>
+            <td>
+                <span class="status-badge">
+                    <span class="status-dot ${statusClass}"></span>
+                    <span class="status-text">${emp.status || '—'}</span>
+                </span>
+            </td>
             <td>
                 <button class="btn-icon edit" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-pen"></i></button>
                 <button class="btn-icon copy" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-copy" title="Копировать"></i></button>
@@ -266,51 +277,54 @@ function renderTable(data) {
         tbody.appendChild(tr);
     });
 
-    if (isAdmin) {
-        document.querySelectorAll('.delete').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.currentTarget.dataset.id;
-                if (confirm('Удалить сотрудника?')) {
-                    employees = employees.filter(emp => emp.id !== id);
-                    saveData();
-                    applyFilters();
-                    populateFilterOptions();
-                }
-            });
+    // Обработчики (только если элементы существуют)
+    document.querySelectorAll('.delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            if (confirm('Удалить сотрудника?')) {
+                employees = employees.filter(emp => emp.id !== id);
+                saveData();
+                applyFilters();
+                populateFilterOptions();
+            }
         });
-        document.querySelectorAll('.edit').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.currentTarget.dataset.id;
-                const emp = employees.find(e => e.id === id);
-                if (!emp) return;
-                editingId = id;
-                fillForm(emp);
-                document.getElementById('formTitle').textContent = 'Редактировать сотрудника';
-                document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Сохранить';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
+    });
+    document.querySelectorAll('.edit').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            if (!isAdmin) return;
+            const id = e.currentTarget.dataset.id;
+            const emp = employees.find(e => e.id === id);
+            if (!emp) return;
+            editingId = id;
+            fillForm(emp);
+            const formTitle = document.getElementById('formTitle');
+            if (formTitle) formTitle.textContent = 'Редактировать сотрудника';
+            const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
+            if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Сохранить';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
-        document.querySelectorAll('.copy').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.currentTarget.dataset.id;
-                const emp = employees.find(e => e.id === id);
-                if (!emp) return;
-                copyEmployee(emp);
-            });
+    });
+    document.querySelectorAll('.copy').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            if (!isAdmin) return;
+            const id = e.currentTarget.dataset.id;
+            const emp = employees.find(e => e.id === id);
+            if (!emp) return;
+            copyEmployee(emp);
         });
-        document.querySelectorAll('.row-checkbox').forEach(cb => {
-            cb.addEventListener('change', updateSelectedCount);
+    });
+    document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
+    });
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = this.checked);
+            updateSelectedCount();
         });
-        const selectAll = document.getElementById('selectAll');
-        if (selectAll) {
-            selectAll.addEventListener('change', function() {
-                const checked = this.checked;
-                document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = checked);
-                updateSelectedCount();
-            });
-        }
     }
 
+    // Кнопки печати и отчёта
     document.querySelectorAll('.print').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const id = e.currentTarget.dataset.id;
@@ -335,139 +349,201 @@ function renderTable(data) {
 }
 
 function updateSelectedCount() {
-    const checked = document.querySelectorAll('.row-checkbox:checked').length;
+    const count = document.querySelectorAll('.row-checkbox:checked').length;
     const el = document.getElementById('selectedCount');
-    if (el) el.textContent = `Выбрано: ${checked}`;
+    if (el) el.textContent = `Выбрано: ${count}`;
 }
 
 function copyEmployee(emp) {
     editingId = null;
     fillForm(emp);
-    document.getElementById('lastName').value = '';
-    document.getElementById('firstName').value = '';
-    document.getElementById('patronymic').value = '';
-    document.getElementById('formTitle').textContent = 'Копирование сотрудника';
-    document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
+    const lastName = document.getElementById('lastName');
+    const firstName = document.getElementById('firstName');
+    const patronymic = document.getElementById('patronymic');
+    if (lastName) lastName.value = '';
+    if (firstName) firstName.value = '';
+    if (patronymic) patronymic.value = '';
+    const formTitle = document.getElementById('formTitle');
+    if (formTitle) formTitle.textContent = 'Копирование сотрудника';
+    const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Добавить';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function fillForm(emp) {
-    const fields = ['lastName', 'firstName', 'patronymic', 'birthDate', 'department', 'rank', 'position', 'personalNumber', 'hireDate', 'alias', 'notes', 'resolution', 'marks'];
+    const fields = ['lastName', 'firstName', 'patronymic', 'birthDate', 'department', 'rank', 'position', 'personalNumber', 'hireDate'];
     fields.forEach(f => {
         const el = document.getElementById(f);
         if (el) el.value = emp[f] || '';
     });
-    document.getElementById('gender').value = emp.gender || 'мужской';
-    document.getElementById('status').value = emp.status || 'действует';
-    document.getElementById('dop').value = emp.dop || '';
-    document.getElementById('qualAgent').checked = !!emp.qualAgent;
-    document.getElementById('qualSurveillance').checked = !!emp.qualSurveillance;
-    document.getElementById('qualCrypto').checked = !!emp.qualCrypto;
+    const gender = document.getElementById('gender');
+    if (gender) gender.value = emp.gender || 'мужской';
+    const status = document.getElementById('status');
+    if (status) status.value = emp.status || 'действует';
 
     const photoInput = document.getElementById('photo');
     const preview = document.getElementById('photoPreview');
     const previewImg = document.getElementById('photoPreviewImg');
     if (emp.photo && emp.photo.length > 100) {
-        previewImg.src = emp.photo;
-        preview.style.display = 'block';
-        photoInput.value = '';
+        if (previewImg) previewImg.src = emp.photo;
+        if (preview) preview.style.display = 'block';
+        if (photoInput) photoInput.value = '';
     } else {
-        preview.style.display = 'none';
-        previewImg.src = '#';
+        if (preview) preview.style.display = 'none';
+        if (previewImg) previewImg.src = '#';
     }
     document.querySelectorAll('.form-group input').forEach(inp => inp.classList.remove('error', 'success'));
 }
 
 function resetForm() {
-    document.getElementById('employeeForm').reset();
+    const form = document.getElementById('employeeForm');
+    if (form) form.reset();
     editingId = null;
-    document.getElementById('photoPreview').style.display = 'none';
-    document.getElementById('photoPreviewImg').src = '#';
-    document.getElementById('photo').value = '';
-    document.getElementById('formTitle').textContent = 'Добавить сотрудника';
-    document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
-    document.querySelectorAll('.form-group input').forEach(inp => inp.classList.remove('error', 'success'));
-    document.getElementById('personalNumber').value = generatePersonalNumber();
-    document.getElementById('qualAgent').checked = false;
-    document.getElementById('qualSurveillance').checked = false;
-    document.getElementById('qualCrypto').checked = false;
-    document.getElementById('notes').value = '';
-    document.getElementById('resolution').value = '';
-    document.getElementById('marks').value = '';
-    document.getElementById('dop').value = '';
-    document.getElementById('status').value = 'действует';
-    document.getElementById('gender').value = 'мужской';
-}
-
-function handleFormSubmit(e) {
-    e.preventDefault();
-    if (!isAdmin) return;
-
-    const lastName = document.getElementById('lastName');
-    const firstName = document.getElementById('firstName');
-    let valid = validateField(lastName);
-    if (!validateField(firstName)) valid = false;
-    if (!valid) {
-        alert('Пожалуйста, исправьте ошибки в форме');
-        return;
-    }
-
-    let photoData = '';
+    const preview = document.getElementById('photoPreview');
     const previewImg = document.getElementById('photoPreviewImg');
-    if (previewImg.src && previewImg.src.startsWith('data:')) {
-        photoData = previewImg.src;
-    } else {
-        const emp = employees.find(e => e.id === editingId);
-        if (emp && emp.photo) photoData = emp.photo;
-    }
-
-    let personalNumber = document.getElementById('personalNumber').value.trim();
-    if (!personalNumber) {
-        personalNumber = generatePersonalNumber();
-    }
-
-    const newEmp = {
-        id: editingId || Date.now().toString(),
-        lastName: lastName.value.trim(),
-        firstName: firstName.value.trim(),
-        patronymic: document.getElementById('patronymic').value.trim(),
-        birthDate: document.getElementById('birthDate').value,
-        gender: document.getElementById('gender').value,
-        department: document.getElementById('department').value.trim(),
-        rank: document.getElementById('rank').value.trim(),
-        position: document.getElementById('position').value.trim(),
-        personalNumber: personalNumber,
-        hireDate: document.getElementById('hireDate').value,
-        status: document.getElementById('status').value,
-        alias: document.getElementById('alias').value.trim(),
-        dop: document.getElementById('dop').value,
-        qualAgent: document.getElementById('qualAgent').checked,
-        qualSurveillance: document.getElementById('qualSurveillance').checked,
-        qualCrypto: document.getElementById('qualCrypto').checked,
-        notes: document.getElementById('notes').value.trim(),
-        resolution: document.getElementById('resolution').value.trim(),
-        marks: document.getElementById('marks').value.trim(),
-        photo: photoData
-    };
-
-    if (editingId) {
-        const index = employees.findIndex(e => e.id === editingId);
-        if (index !== -1) employees[index] = newEmp;
-    } else {
-        employees.push(newEmp);
-    }
-    saveData();
-    populateFilterOptions();
-    applyFilters();
-    resetForm();
-    alert('Сотрудник сохранён');
+    const photoInput = document.getElementById('photo');
+    if (preview) preview.style.display = 'none';
+    if (previewImg) previewImg.src = '#';
+    if (photoInput) photoInput.value = '';
+    const formTitle = document.getElementById('formTitle');
+    if (formTitle) formTitle.textContent = 'Добавить сотрудника';
+    const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Добавить';
+    document.querySelectorAll('.form-group input').forEach(inp => inp.classList.remove('error', 'success'));
+    const personalNumber = document.getElementById('personalNumber');
+    if (personalNumber) personalNumber.value = generatePersonalNumber();
 }
 
-function initGroupAction() {
-    const applyBtn = document.getElementById('groupActionApplyBtn');
-    if (!applyBtn) return;
-    applyBtn.addEventListener('click', function() {
-        const action = document.getElementById('groupActionSelect').value;
+// Валидация в реальном времени
+document.addEventListener('input', function(e) {
+    if (e.target.matches('#lastName, #firstName, #personalNumber')) {
+        validateField(e.target);
+    }
+});
+
+// Автозаполнение по подразделению
+const departmentEl = document.getElementById('department');
+if (departmentEl) {
+    departmentEl.addEventListener('change', function() {
+        const dept = this.value;
+        if (!dept) return;
+        const deptEmployees = employees.filter(e => e.department === dept);
+        if (deptEmployees.length === 0) return;
+        const rankCount = {};
+        const posCount = {};
+        deptEmployees.forEach(e => {
+            if (e.rank) rankCount[e.rank] = (rankCount[e.rank] || 0) + 1;
+            if (e.position) posCount[e.position] = (posCount[e.position] || 0) + 1;
+        });
+        let mostRank = Object.keys(rankCount).sort((a,b) => rankCount[b]-rankCount[a])[0] || '';
+        let mostPos = Object.keys(posCount).sort((a,b) => posCount[b]-posCount[a])[0] || '';
+        const rankField = document.getElementById('rank');
+        if (rankField && !rankField.value) rankField.value = mostRank;
+        const posField = document.getElementById('position');
+        if (posField && !posField.value) posField.value = mostPos;
+    });
+}
+
+// Быстрая форма
+const quickCheck = document.getElementById('quickModeCheck');
+if (quickCheck) {
+    quickCheck.addEventListener('change', function() {
+        const extended = document.querySelector('.extended-fields');
+        if (extended) extended.style.display = this.checked ? 'none' : 'block';
+    });
+}
+
+// Предпросмотр фото
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'photo') {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const previewImg = document.getElementById('photoPreviewImg');
+                const preview = document.getElementById('photoPreview');
+                if (previewImg) previewImg.src = ev.target.result;
+                if (preview) preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+});
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'removePhotoBtn') {
+        const photoInput = document.getElementById('photo');
+        const preview = document.getElementById('photoPreview');
+        const previewImg = document.getElementById('photoPreviewImg');
+        if (photoInput) photoInput.value = '';
+        if (preview) preview.style.display = 'none';
+        if (previewImg) previewImg.src = '#';
+    }
+});
+
+// ===== ОБРАБОТКА ФОРМЫ =====
+const employeeForm = document.getElementById('employeeForm');
+if (employeeForm) {
+    employeeForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!isAdmin) return;
+
+        const lastName = document.getElementById('lastName');
+        const firstName = document.getElementById('firstName');
+        let valid = true;
+        if (lastName) valid = validateField(lastName) && valid;
+        if (firstName) valid = validateField(firstName) && valid;
+        if (!valid) {
+            alert('Пожалуйста, исправьте ошибки в форме');
+            return;
+        }
+
+        let photoData = '';
+        const previewImg = document.getElementById('photoPreviewImg');
+        if (previewImg && previewImg.src && previewImg.src.startsWith('data:')) {
+            photoData = previewImg.src;
+        } else {
+            const emp = employees.find(e => e.id === editingId);
+            if (emp && emp.photo) photoData = emp.photo;
+        }
+
+        let personalNumber = document.getElementById('personalNumber')?.value.trim() || '';
+        if (!personalNumber) personalNumber = generatePersonalNumber();
+
+        const newEmp = {
+            id: editingId || Date.now().toString(),
+            lastName: document.getElementById('lastName')?.value.trim() || '',
+            firstName: document.getElementById('firstName')?.value.trim() || '',
+            patronymic: document.getElementById('patronymic')?.value.trim() || '',
+            birthDate: document.getElementById('birthDate')?.value || '',
+            gender: document.getElementById('gender')?.value || 'мужской',
+            department: document.getElementById('department')?.value.trim() || '',
+            rank: document.getElementById('rank')?.value.trim() || '',
+            position: document.getElementById('position')?.value.trim() || '',
+            personalNumber: personalNumber,
+            hireDate: document.getElementById('hireDate')?.value || '',
+            status: document.getElementById('status')?.value || 'действует',
+            photo: photoData
+        };
+
+        if (editingId) {
+            const index = employees.findIndex(e => e.id === editingId);
+            if (index !== -1) employees[index] = newEmp;
+        } else {
+            employees.push(newEmp);
+        }
+        saveData();
+        populateFilterOptions();
+        applyFilters();
+        resetForm();
+        alert('Сотрудник сохранён');
+    });
+}
+
+// ===== ГРУППОВОЕ ДЕЙСТВИЕ =====
+const groupApplyBtn = document.getElementById('groupActionApplyBtn');
+if (groupApplyBtn) {
+    groupApplyBtn.addEventListener('click', function() {
+        const action = document.getElementById('groupActionSelect')?.value;
         const checked = document.querySelectorAll('.row-checkbox:checked');
         if (checked.length === 0) {
             alert('Выберите хотя бы одного сотрудника');
@@ -482,33 +558,41 @@ function initGroupAction() {
         const label = document.getElementById('groupActionLabel');
         const field = document.getElementById('groupActionValue');
         const error = document.getElementById('groupActionError');
-        error.style.display = 'none';
+        if (error) error.style.display = 'none';
         if (action === 'status') {
-            title.innerHTML = '<i class="fas fa-edit"></i> Изменить статус';
-            label.textContent = 'Новый статус (действует, отпуск, командировка, уволен)';
-            field.placeholder = 'Введите статус';
+            if (title) title.innerHTML = '<i class="fas fa-edit"></i> Изменить статус';
+            if (label) label.textContent = 'Новый статус';
+            if (field) field.placeholder = 'действует, отпуск, командировка, уволен';
         } else if (action === 'department') {
-            title.innerHTML = '<i class="fas fa-edit"></i> Изменить подразделение';
-            label.textContent = 'Новое подразделение';
-            field.placeholder = 'Введите подразделение';
+            if (title) title.innerHTML = '<i class="fas fa-edit"></i> Изменить подразделение';
+            if (label) label.textContent = 'Новое подразделение';
+            if (field) field.placeholder = 'Введите название';
         }
-        field.value = '';
-        modal.style.display = 'flex';
-        field.focus();
+        if (field) field.value = '';
+        if (modal) modal.style.display = 'flex';
+        if (field) field.focus();
     });
+}
 
-    document.getElementById('groupActionClose').addEventListener('click', function() {
-        document.getElementById('groupActionModal').style.display = 'none';
+const groupClose = document.getElementById('groupActionClose');
+if (groupClose) {
+    groupClose.addEventListener('click', function() {
+        const modal = document.getElementById('groupActionModal');
+        if (modal) modal.style.display = 'none';
     });
-
-    document.getElementById('groupActionForm').addEventListener('submit', function(e) {
+}
+const groupForm = document.getElementById('groupActionForm');
+if (groupForm) {
+    groupForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        const action = document.getElementById('groupActionSelect').value;
-        const value = document.getElementById('groupActionValue').value.trim();
+        const action = document.getElementById('groupActionSelect')?.value;
+        const value = document.getElementById('groupActionValue')?.value.trim();
         const error = document.getElementById('groupActionError');
         if (!value) {
-            error.textContent = 'Введите значение';
-            error.style.display = 'block';
+            if (error) {
+                error.textContent = 'Введите значение';
+                error.style.display = 'block';
+            }
             return;
         }
         const checked = document.querySelectorAll('.row-checkbox:checked');
@@ -516,30 +600,29 @@ function initGroupAction() {
         let changed = 0;
         employees.forEach(emp => {
             if (ids.includes(emp.id)) {
-                if (action === 'status') {
-                    emp.status = value;
-                    changed++;
-                } else if (action === 'department') {
-                    emp.department = value;
-                    changed++;
-                }
+                if (action === 'status') { emp.status = value; changed++; }
+                else if (action === 'department') { emp.department = value; changed++; }
             }
         });
         if (changed > 0) {
             saveData();
             populateFilterOptions();
             applyFilters();
-            document.getElementById('groupActionModal').style.display = 'none';
+            const modal = document.getElementById('groupActionModal');
+            if (modal) modal.style.display = 'none';
             document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
             updateSelectedCount();
             alert(`Изменено ${changed} сотрудников`);
         } else {
-            error.textContent = 'Не удалось применить';
-            error.style.display = 'block';
+            if (error) {
+                error.textContent = 'Не удалось применить';
+                error.style.display = 'block';
+            }
         }
     });
 }
 
+// ===== ПОКАЗ ФОТО В МОДАЛКЕ =====
 function showPhotoModal(src, name) {
     const modal = document.createElement('div');
     modal.className = 'modal photo-modal';
@@ -557,237 +640,190 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== ОТЧЁТЫ (PDF) — ЧИСТЫЙ jsPDF С HELVETICA =====
+// ===== PDF ОТЧЁТЫ =====
 function generateReport(emp) {
-    if (typeof window.jspdf === 'undefined') {
-        alert('Библиотека jsPDF не загружена. Проверьте, что файл libs/jspdf.umd.min.js существует.');
-        return;
+    try {
+        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+        const docDefinition = {
+            content: [
+                { text: 'ОТЧЁТ О СОТРУДНИКЕ', style: 'header', alignment: 'center' },
+                { text: '\n\n' },
+                { text: `ФИО: ${fio}` },
+                { text: `Дата рождения: ${emp.birthDate || '—'}` },
+                { text: `Пол: ${emp.gender || '—'}` },
+                { text: `Подразделение: ${emp.department || '—'}` },
+                { text: `Звание: ${emp.rank || '—'}` },
+                { text: `Должность: ${emp.position || '—'}` },
+                { text: `Личный номер: ${emp.personalNumber || '—'}` },
+                { text: `Дата принятия: ${emp.hireDate || '—'}` },
+                { text: `Статус: ${emp.status || '—'}` },
+                { text: '\n\n' },
+                { text: `Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
+            ],
+            styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } },
+            defaultStyle: { fontSize: 12 }
+        };
+        pdfMake.createPdf(docDefinition).download(`Отчёт_${emp.lastName}_${emp.firstName}.pdf`);
+    } catch(e) {
+        alert('Ошибка генерации PDF: ' + e.message);
     }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'mm', 'a4');
-    const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.setTextColor('#0b1a2e');
-    doc.text('ОТЧЁТ О СОТРУДНИКЕ', 105, 20, { align: 'center' });
-
-    doc.setDrawColor(212, 175, 55);
-    doc.line(20, 25, 190, 25);
-
-    let y = 35;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
-    doc.setTextColor('#000000');
-
-    const fields = [
-        ['ФИО', fio],
-        ['Дата рождения', emp.birthDate || '—'],
-        ['Пол', emp.gender || '—'],
-        ['Подразделение', emp.department || '—'],
-        ['Звание', emp.rank || '—'],
-        ['Должность', emp.position || '—'],
-        ['Личный номер', emp.personalNumber || '—'],
-        ['Дата принятия', emp.hireDate || '—'],
-        ['Статус', emp.status || '—'],
-        ['Псевдоним', emp.alias || '—'],
-        ['Допуск', emp.dop || '—'],
-        ['Агентурная', emp.qualAgent ? 'Да' : 'Нет'],
-        ['Наружное', emp.qualSurveillance ? 'Да' : 'Нет'],
-        ['Шифр.', emp.qualCrypto ? 'Да' : 'Нет'],
-        ['Особые отметки', emp.notes || '—'],
-        ['Резолюция', emp.resolution || '—'],
-        ['Отметки', emp.marks || '—']
-    ];
-
-    fields.forEach(([label, value]) => {
-        if (y > 270) {
-            doc.addPage();
-            y = 20;
-        }
-        doc.setFont('helvetica', 'bold');
-        doc.text(label + ':', 20, y);
-        doc.setFont('helvetica', 'normal');
-        const maxWidth = 130;
-        const lines = doc.splitTextToSize(String(value), maxWidth);
-        doc.text(lines, 65, y);
-        y += 10 * lines.length + 2;
-    });
-
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(10);
-    doc.setTextColor('#7a8a9e');
-    doc.text('Сформировано в АСУЛС ТУ ФСБ', 105, 285, { align: 'center' });
-    doc.text(new Date().toLocaleDateString(), 105, 290, { align: 'center' });
-
-    doc.save(`Отчёт_${emp.lastName}_${emp.firstName}.pdf`);
 }
 
 function printEmployeeCard(emp) {
-    generateReport(emp);
+    try {
+        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+        const docDefinition = {
+            content: [
+                { text: 'ЛИЧНОЕ ДЕЛО', style: 'header', alignment: 'center' },
+                { text: '\n\n' },
+                { text: `ФИО: ${fio}` },
+                { text: `Дата рождения: ${emp.birthDate || '—'}` },
+                { text: `Пол: ${emp.gender || '—'}` },
+                { text: `Подразделение: ${emp.department || '—'}` },
+                { text: `Звание: ${emp.rank || '—'}` },
+                { text: `Должность: ${emp.position || '—'}` },
+                { text: `Личный номер: ${emp.personalNumber || '—'}` },
+                { text: `Дата принятия: ${emp.hireDate || '—'}` },
+                { text: `Статус: ${emp.status || '—'}` },
+                { text: '\n\n' },
+                { text: `Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
+            ],
+            styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } },
+            defaultStyle: { fontSize: 12 }
+        };
+        pdfMake.createPdf(docDefinition).download(`Личное_дело_${emp.lastName}_${emp.firstName}.pdf`);
+    } catch(e) {
+        alert('Ошибка генерации PDF: ' + e.message);
+    }
 }
 
 function generateSummaryReport() {
-    if (typeof window.jspdf === 'undefined') {
-        alert('Библиотека jsPDF не загружена. Проверьте, что файл libs/jspdf.umd.min.js существует.');
-        return;
-    }
-    if (filteredEmployees.length === 0) {
+    if (!filteredEmployees || filteredEmployees.length === 0) {
         alert('Нет данных для отчёта');
         return;
     }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('landscape', 'mm', 'a4');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor('#0b1a2e');
-    doc.text('СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ ТУ ФСБ', 148, 15, { align: 'center' });
-    doc.setDrawColor(212, 175, 55);
-    doc.line(20, 20, 276, 20);
-
-    const headers = ['№', 'ФИО', 'Подразделение', 'Звание', 'Должность', 'Статус'];
-    const colWidths = [10, 60, 40, 30, 40, 30];
-    let y = 28;
-    doc.setFillColor(26, 47, 68);
-    doc.rect(20, y-6, 256, 8, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor('#ffffff');
-    let x = 20;
-    headers.forEach((h, i) => {
-        doc.text(h, x + (i === 0 ? 0 : 2), y);
-        x += colWidths[i];
-    });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor('#000000');
-    y += 8;
-
-    filteredEmployees.forEach((emp, idx) => {
-        const row = [
-            (idx+1).toString(),
-            `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim(),
-            emp.department || '',
-            emp.rank || '',
-            emp.position || '',
-            emp.status || ''
+    try {
+        const tableBody = [
+            ['№', 'ФИО', 'Подразделение', 'Звание', 'Должность', 'Статус']
         ];
-        let x2 = 20;
-        row.forEach((cell, i) => {
-            const lines = doc.splitTextToSize(String(cell), colWidths[i] - 2);
-            doc.text(lines, x2 + 2, y);
-            x2 += colWidths[i];
+        filteredEmployees.forEach((emp, idx) => {
+            tableBody.push([
+                (idx+1).toString(),
+                `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim(),
+                emp.department || '',
+                emp.rank || '',
+                emp.position || '',
+                emp.status || ''
+            ]);
         });
-        y += 6;
-        if (y > 190) {
-            doc.addPage();
-            y = 20;
-            doc.setFillColor(26, 47, 68);
-            doc.rect(20, y-6, 256, 8, 'F');
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
-            doc.setTextColor('#ffffff');
-            let xh = 20;
-            headers.forEach((h, i) => {
-                doc.text(h, xh + (i === 0 ? 0 : 2), y);
-                xh += colWidths[i];
-            });
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.setTextColor('#000000');
-            y += 8;
-        }
-    });
-
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(10);
-    doc.setTextColor('#7a8a9e');
-    doc.text(`Всего: ${filteredEmployees.length} сотрудников`, 20, y+10);
-    doc.text(`Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, 148, y+10, { align: 'center' });
-    doc.save('Сводный_отчёт_ТУ_ФСБ.pdf');
+        const docDefinition = {
+            content: [
+                { text: 'СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ', style: 'header', alignment: 'center' },
+                { text: '\n' },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: [20, 'auto', 'auto', 'auto', 'auto', 'auto'],
+                        body: tableBody
+                    },
+                    style: 'table'
+                },
+                { text: '\n' },
+                { text: `Всего: ${filteredEmployees.length} сотрудников`, fontSize: 10 },
+                { text: `Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
+            ],
+            styles: {
+                header: { fontSize: 16, bold: true, margin: [0, 0, 0, 10] },
+                table: { margin: [0, 5, 0, 5] }
+            },
+            defaultStyle: { fontSize: 10 }
+        };
+        pdfMake.createPdf(docDefinition).download('Сводный_отчёт.pdf');
+    } catch(e) {
+        alert('Ошибка генерации PDF: ' + e.message);
+    }
 }
 
 // ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
 function exportToExcel() {
-    const data = filteredEmployees.map(emp => ({
-        'Фамилия': emp.lastName,
-        'Имя': emp.firstName,
-        'Отчество': emp.patronymic || '',
-        'Дата рождения': emp.birthDate || '',
-        'Пол': emp.gender || '',
-        'Подразделение': emp.department || '',
-        'Звание': emp.rank || '',
-        'Должность': emp.position || '',
-        'Личный номер': emp.personalNumber || '',
-        'Дата принятия': emp.hireDate || '',
-        'Статус': emp.status || '',
-        'Псевдоним': emp.alias || '',
-        'Допуск': emp.dop || '',
-        'Агентурная': emp.qualAgent ? 'Да' : 'Нет',
-        'Наружное': emp.qualSurveillance ? 'Да' : 'Нет',
-        'Шифр. техника': emp.qualCrypto ? 'Да' : 'Нет',
-        'Особые отметки': emp.notes || '',
-        'Резолюция': emp.resolution || '',
-        'Отметки': emp.marks || ''
-    }));
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, 'Сотрудники ТУ ФСБ');
-    XLSX.writeFile(wb, 'АСУЛС_ТУ_ФСБ_список.xlsx');
+    try {
+        if (typeof XLSX === 'undefined') {
+            alert('Библиотека XLSX не загружена. Проверьте интернет-соединение.');
+            return;
+        }
+        const data = filteredEmployees.map(emp => ({
+            'Фамилия': emp.lastName,
+            'Имя': emp.firstName,
+            'Отчество': emp.patronymic || '',
+            'Дата рождения': emp.birthDate || '',
+            'Пол': emp.gender || '',
+            'Подразделение': emp.department || '',
+            'Звание': emp.rank || '',
+            'Должность': emp.position || '',
+            'Личный номер': emp.personalNumber || '',
+            'Дата принятия': emp.hireDate || '',
+            'Статус': emp.status || ''
+        }));
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Сотрудники');
+        XLSX.writeFile(wb, 'АСУЛС_список.xlsx');
+    } catch(e) {
+        alert('Ошибка экспорта: ' + e.message);
+    }
 }
 
 function importFromExcel(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(firstSheet);
-            const imported = rows.map(row => ({
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 4),
-                lastName: (row['Фамилия'] || '').toString().trim(),
-                firstName: (row['Имя'] || '').toString().trim(),
-                patronymic: (row['Отчество'] || '').toString().trim(),
-                birthDate: row['Дата рождения'] ? new Date(row['Дата рождения']).toISOString().split('T')[0] : '',
-                gender: (row['Пол'] || '').toString().trim(),
-                department: (row['Подразделение'] || '').toString().trim(),
-                rank: (row['Звание'] || '').toString().trim(),
-                position: (row['Должность'] || '').toString().trim(),
-                personalNumber: (row['Личный номер'] || '').toString().trim(),
-                hireDate: row['Дата принятия'] ? new Date(row['Дата принятия']).toISOString().split('T')[0] : '',
-                status: (row['Статус'] || '').toString().trim(),
-                alias: (row['Псевдоним'] || '').toString().trim(),
-                dop: (row['Допуск'] || '').toString().trim(),
-                qualAgent: (row['Агентурная'] || '').toLowerCase() === 'да',
-                qualSurveillance: (row['Наружное'] || '').toLowerCase() === 'да',
-                qualCrypto: (row['Шифр. техника'] || '').toLowerCase() === 'да',
-                notes: (row['Особые отметки'] || '').toString().trim(),
-                resolution: (row['Резолюция'] || '').toString().trim(),
-                marks: (row['Отметки'] || '').toString().trim()
-            }));
-            if (imported.length > 0) {
-                if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
-                    employees = imported;
-                    saveData();
-                    populateFilterOptions();
-                    applyFilters();
-                    alert('Импорт выполнен успешно!');
-                }
-            } else {
-                alert('Файл не содержит данных.');
-            }
-        } catch (err) {
-            alert('Ошибка при чтении файла: ' + err.message);
+    try {
+        if (typeof XLSX === 'undefined') {
+            alert('Библиотека XLSX не загружена. Проверьте интернет-соединение.');
+            return;
         }
-    };
-    reader.readAsArrayBuffer(file);
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet);
+                const imported = rows.map(row => ({
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 4),
+                    lastName: (row['Фамилия'] || '').toString().trim(),
+                    firstName: (row['Имя'] || '').toString().trim(),
+                    patronymic: (row['Отчество'] || '').toString().trim(),
+                    birthDate: row['Дата рождения'] ? new Date(row['Дата рождения']).toISOString().split('T')[0] : '',
+                    gender: (row['Пол'] || '').toString().trim(),
+                    department: (row['Подразделение'] || '').toString().trim(),
+                    rank: (row['Звание'] || '').toString().trim(),
+                    position: (row['Должность'] || '').toString().trim(),
+                    personalNumber: (row['Личный номер'] || '').toString().trim(),
+                    hireDate: row['Дата принятия'] ? new Date(row['Дата принятия']).toISOString().split('T')[0] : '',
+                    status: (row['Статус'] || '').toString().trim()
+                }));
+                if (imported.length > 0) {
+                    if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
+                        employees = imported;
+                        saveData();
+                        populateFilterOptions();
+                        applyFilters();
+                        alert('Импорт выполнен успешно!');
+                    }
+                } else {
+                    alert('Файл не содержит данных.');
+                }
+            } catch(err) {
+                alert('Ошибка при чтении файла: ' + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    } catch(e) {
+        alert('Ошибка импорта: ' + e.message);
+    }
 }
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', function() {
+    // Все элементы получаем с проверкой
     const loginScreen = document.getElementById('loginScreen');
     const appContent = document.getElementById('appContent');
     const loginForm = document.getElementById('loginForm');
@@ -797,20 +833,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginError = document.getElementById('loginError');
     const logoutBtn = document.getElementById('logoutBtn');
     const userDisplay = document.getElementById('userDisplay');
-    const employeeForm = document.getElementById('employeeForm');
-    const searchInput = document.getElementById('searchInput');
-    const searchField = document.getElementById('searchField');
-    const filterDepartment = document.getElementById('filterDepartment');
-    const filterRank = document.getElementById('filterRank');
-    const filterStatus = document.getElementById('filterStatus');
-    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
-    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    const manageUsersBtn = document.getElementById('manageUsersBtn');
     const importExcelBtn = document.getElementById('importExcelBtn');
+    const importJsonBtn = document.getElementById('importJsonBtn');
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
     const importExcelInput = document.getElementById('importExcelInput');
     const exportJsonBtn = document.getElementById('exportJsonBtn');
-    const importJsonBtn = document.getElementById('importJsonBtn');
     const importJsonInput = document.getElementById('importJsonInput');
     const summaryReportBtn = document.getElementById('summaryReportBtn');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const changePasswordBtn = document.getElementById('changePasswordBtn');
     const changePasswordModal = document.getElementById('changePasswordModal');
     const modalClose = document.getElementById('modalClose');
@@ -819,7 +850,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const newPassword = document.getElementById('newPassword');
     const confirmPassword = document.getElementById('confirmPassword');
     const changePasswordError = document.getElementById('changePasswordError');
-    const manageUsersBtn = document.getElementById('manageUsersBtn');
     const manageUsersModal = document.getElementById('manageUsersModal');
     const manageUsersClose = document.getElementById('manageUsersClose');
     const userListDiv = document.getElementById('userList');
@@ -828,454 +858,263 @@ document.addEventListener('DOMContentLoaded', function() {
     const newUserPassword = document.getElementById('newUserPassword');
     const newUserRole = document.getElementById('newUserRole');
     const addUserError = document.getElementById('addUserError');
+    const searchInput = document.getElementById('searchInput');
+    const searchField = document.getElementById('searchField');
+    const filterDepartment = document.getElementById('filterDepartment');
+    const filterRank = document.getElementById('filterRank');
+    const filterStatus = document.getElementById('filterStatus');
 
     function login(fullName, password, masterPassword) {
         const result = authenticate(fullName, password, masterPassword);
         if (result.success) {
             currentUser = result.user;
             isAdmin = currentUser.role === 'admin';
-            loginScreen.style.display = 'none';
-            appContent.style.display = 'block';
-            userDisplay.textContent = currentUser.fullName + (isAdmin ? ' (админ)' : '');
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (appContent) appContent.style.display = 'block';
+            if (userDisplay) userDisplay.textContent = currentUser.fullName + (isAdmin ? ' (админ)' : '');
 
-            document.getElementById('formCard').style.display = isAdmin ? 'block' : 'none';
-            manageUsersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-            importExcelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-            importJsonBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+            const formCard = document.getElementById('formCard');
+            if (formCard) formCard.style.display = isAdmin ? 'block' : 'none';
+            if (manageUsersBtn) manageUsersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+            if (importExcelBtn) importExcelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+            if (importJsonBtn) importJsonBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
             loadData();
             populateFilterOptions();
-            if (isAdmin) document.getElementById('personalNumber').value = generatePersonalNumber();
+            if (isAdmin) {
+                const personalNumber = document.getElementById('personalNumber');
+                if (personalNumber) personalNumber.value = generatePersonalNumber();
+            }
             applyFilters();
-            loginError.style.display = 'none';
-            loginFullName.value = '';
-            loginPassword.value = '';
-            loginMasterPassword.value = '';
+            if (loginError) loginError.style.display = 'none';
+            if (loginFullName) loginFullName.value = '';
+            if (loginPassword) loginPassword.value = '';
+            if (loginMasterPassword) loginMasterPassword.value = '';
         } else {
-            loginError.textContent = result.message;
-            loginError.style.display = 'block';
-            loginPassword.value = '';
-            loginMasterPassword.value = '';
-            loginFullName.focus();
+            if (loginError) {
+                loginError.textContent = result.message;
+                loginError.style.display = 'block';
+            }
+            if (loginPassword) loginPassword.value = '';
+            if (loginMasterPassword) loginMasterPassword.value = '';
+            if (loginFullName) loginFullName.focus();
         }
     }
 
     function logout() {
         currentUser = null;
         isAdmin = false;
-        appContent.style.display = 'none';
-        loginScreen.style.display = 'flex';
-        loginFullName.value = '';
-        loginPassword.value = '';
-        loginMasterPassword.value = '';
-        loginError.style.display = 'none';
+        if (appContent) appContent.style.display = 'none';
+        if (loginScreen) loginScreen.style.display = 'flex';
+        if (loginFullName) loginFullName.value = '';
+        if (loginPassword) loginPassword.value = '';
+        if (loginMasterPassword) loginMasterPassword.value = '';
+        if (loginError) loginError.style.display = 'none';
     }
 
-    loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        login(loginFullName.value, loginPassword.value, loginMasterPassword.value);
-    });
-    logoutBtn.addEventListener('click', logout);
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            login(loginFullName?.value || '', loginPassword?.value || '', loginMasterPassword?.value || '');
+        });
+    }
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
 
-    const filterFields = [filterDepartment, filterRank, filterStatus, searchField, searchInput];
-    filterFields.forEach(field => {
-        if (field) {
-            field.addEventListener('change', applyFilters);
-            field.addEventListener('input', applyFilters);
+    // Фильтры
+    const filterEls = [filterDepartment, filterRank, filterStatus, searchField, searchInput];
+    filterEls.forEach(el => {
+        if (el) {
+            el.addEventListener('change', applyFilters);
+            el.addEventListener('input', applyFilters);
         }
     });
-    clearFiltersBtn.addEventListener('click', function() {
-        filterDepartment.value = '';
-        filterRank.value = '';
-        filterStatus.value = '';
-        searchField.value = 'all';
-        searchInput.value = '';
-        applyFilters();
-    });
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function() {
+            if (filterDepartment) filterDepartment.value = '';
+            if (filterRank) filterRank.value = '';
+            if (filterStatus) filterStatus.value = '';
+            if (searchField) searchField.value = 'all';
+            if (searchInput) searchInput.value = '';
+            applyFilters();
+        });
+    }
 
-    exportExcelBtn.addEventListener('click', exportToExcel);
-    importExcelBtn.addEventListener('click', () => importExcelInput.click());
-    importExcelInput.addEventListener('change', function(e) {
-        if (this.files.length) {
-            importFromExcel(this.files[0]);
-            this.value = '';
-        }
-    });
-    exportJsonBtn.addEventListener('click', function() {
-        const blob = new Blob([JSON.stringify(employees, null, 2)], { type: 'application/json' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'asuls_tu_data.json';
-        link.click();
-    });
-    importJsonBtn.addEventListener('click', () => importJsonInput.click());
-    importJsonInput.addEventListener('change', function(e) {
-        const file = this.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-            try {
-                const imported = JSON.parse(ev.target.result);
-                if (Array.isArray(imported)) {
-                    if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
-                        employees = imported;
-                        saveData();
-                        populateFilterOptions();
-                        applyFilters();
-                        alert('Импорт выполнен успешно');
+    // Экспорт/импорт
+    if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportToExcel);
+    if (importExcelBtn && importExcelInput) {
+        importExcelBtn.addEventListener('click', () => importExcelInput.click());
+        importExcelInput.addEventListener('change', function(e) {
+            if (this.files.length) {
+                importFromExcel(this.files[0]);
+                this.value = '';
+            }
+        });
+    }
+    if (exportJsonBtn) {
+        exportJsonBtn.addEventListener('click', function() {
+            const blob = new Blob([JSON.stringify(employees, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'asuls_data.json';
+            link.click();
+        });
+    }
+    if (importJsonBtn && importJsonInput) {
+        importJsonBtn.addEventListener('click', () => importJsonInput.click());
+        importJsonInput.addEventListener('change', function(e) {
+            const file = this.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                try {
+                    const imported = JSON.parse(ev.target.result);
+                    if (Array.isArray(imported)) {
+                        if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
+                            employees = imported;
+                            saveData();
+                            populateFilterOptions();
+                            applyFilters();
+                            alert('Импорт выполнен успешно');
+                        }
                     }
+                } catch (err) {
+                    alert('Ошибка импорта: неверный формат JSON');
                 }
-            } catch (err) {
-                alert('Ошибка импорта: неверный формат JSON');
-            }
-        };
-        reader.readAsText(file);
-        this.value = '';
-    });
-
-    summaryReportBtn.addEventListener('click', generateSummaryReport);
-
-    changePasswordBtn.addEventListener('click', function() {
-        changePasswordModal.style.display = 'flex';
-        oldPassword.value = '';
-        newPassword.value = '';
-        confirmPassword.value = '';
-        changePasswordError.style.display = 'none';
-    });
-    modalClose.addEventListener('click', () => changePasswordModal.style.display = 'none');
-    window.addEventListener('click', function(e) {
-        if (e.target === changePasswordModal) changePasswordModal.style.display = 'none';
-    });
-    changePasswordForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const oldPwd = oldPassword.value;
-        const newPwd = newPassword.value;
-        const confirmPwd = confirmPassword.value;
-        changePasswordError.style.display = 'none';
-        if (newPwd !== confirmPwd) {
-            changePasswordError.textContent = 'Новый пароль и подтверждение не совпадают.';
-            changePasswordError.style.display = 'block';
-            return;
-        }
-        if (oldPwd !== currentUser.password) {
-            changePasswordError.textContent = 'Неверный старый пароль.';
-            changePasswordError.style.display = 'block';
-            return;
-        }
-        if (newPwd.length < 4) {
-            changePasswordError.textContent = 'Пароль должен быть не менее 4 символов.';
-            changePasswordError.style.display = 'block';
-            return;
-        }
-        const users = getUsers();
-        const userIdx = users.findIndex(u => u.fullName === currentUser.fullName);
-        if (userIdx !== -1) {
-            users[userIdx].password = newPwd;
-            saveUsers(users);
-            currentUser.password = newPwd;
-            alert('Пароль успешно изменён!');
-            changePasswordModal.style.display = 'none';
-        } else {
-            changePasswordError.textContent = 'Ошибка сохранения.';
-            changePasswordError.style.display = 'block';
-        }
-    });
-
-    manageUsersBtn.addEventListener('click', function() {
-        if (!isAdmin) return;
-        renderUserList();
-        manageUsersModal.style.display = 'flex';
-    });
-    manageUsersClose.addEventListener('click', () => manageUsersModal.style.display = 'none');
-    window.addEventListener('click', function(e) {
-        if (e.target === manageUsersModal) manageUsersModal.style.display = 'none';
-    });
-
-    function renderUserList() {
-        const users = getUsers();
-        userListDiv.innerHTML = '';
-        users.forEach(u => {
-            const div = document.createElement('div');
-            div.className = 'user-item';
-            div.innerHTML = `
-                <span>${u.fullName} <span class="user-role">(${u.role})</span></span>
-                <button class="user-del" data-name="${u.fullName}"><i class="fas fa-trash"></i></button>
-            `;
-            userListDiv.appendChild(div);
+            };
+            reader.readAsText(file);
+            this.value = '';
         });
-        document.querySelectorAll('.user-del').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const name = this.dataset.name;
-                if (name === currentUser.fullName) {
-                    alert('Нельзя удалить самого себя');
-                    return;
+    }
+    if (summaryReportBtn) summaryReportBtn.addEventListener('click', generateSummaryReport);
+
+    // Смена пароля
+    if (changePasswordBtn && changePasswordModal && modalClose && changePasswordForm) {
+        changePasswordBtn.addEventListener('click', function() {
+            changePasswordModal.style.display = 'flex';
+            if (oldPassword) oldPassword.value = '';
+            if (newPassword) newPassword.value = '';
+            if (confirmPassword) confirmPassword.value = '';
+            if (changePasswordError) changePasswordError.style.display = 'none';
+        });
+        modalClose.addEventListener('click', () => changePasswordModal.style.display = 'none');
+        window.addEventListener('click', function(e) {
+            if (e.target === changePasswordModal) changePasswordModal.style.display = 'none';
+        });
+        changePasswordForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const oldPwd = oldPassword?.value || '';
+            const newPwd = newPassword?.value || '';
+            const confirmPwd = confirmPassword?.value || '';
+            if (changePasswordError) changePasswordError.style.display = 'none';
+            if (newPwd !== confirmPwd) {
+                if (changePasswordError) {
+                    changePasswordError.textContent = 'Новый пароль и подтверждение не совпадают.';
+                    changePasswordError.style.display = 'block';
                 }
-                if (confirm(`Удалить пользователя ${name}?`)) {
-                    let users = getUsers().filter(u => u.fullName !== name);
-                    saveUsers(users);
-                    renderUserList();
+                return;
+            }
+            if (oldPwd !== currentUser.password) {
+                if (changePasswordError) {
+                    changePasswordError.textContent = 'Неверный старый пароль.';
+                    changePasswordError.style.display = 'block';
                 }
+                return;
+            }
+            if (newPwd.length < 4) {
+                if (changePasswordError) {
+                    changePasswordError.textContent = 'Пароль должен быть не менее 4 символов.';
+                    changePasswordError.style.display = 'block';
+                }
+                return;
+            }
+            const users = getUsers();
+            const userIdx = users.findIndex(u => u.fullName === currentUser.fullName);
+            if (userIdx !== -1) {
+                users[userIdx].password = newPwd;
+                saveUsers(users);
+                currentUser.password = newPwd;
+                alert('Пароль успешно изменён!');
+                changePasswordModal.style.display = 'none';
+            } else {
+                if (changePasswordError) {
+                    changePasswordError.textContent = 'Ошибка сохранения.';
+                    changePasswordError.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    // Управление пользователями (админ)
+    if (manageUsersBtn && manageUsersModal && manageUsersClose && userListDiv && addUserForm) {
+        manageUsersBtn.addEventListener('click', function() {
+            if (!isAdmin) return;
+            renderUserList();
+            manageUsersModal.style.display = 'flex';
+        });
+        manageUsersClose.addEventListener('click', () => manageUsersModal.style.display = 'none');
+        window.addEventListener('click', function(e) {
+            if (e.target === manageUsersModal) manageUsersModal.style.display = 'none';
+        });
+
+        function renderUserList() {
+            const users = getUsers();
+            userListDiv.innerHTML = '';
+            users.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'user-item';
+                div.innerHTML = `
+                    <span>${u.fullName} <span class="user-role">(${u.role})</span></span>
+                    <button class="user-del" data-name="${u.fullName}"><i class="fas fa-trash"></i></button>
+                `;
+                userListDiv.appendChild(div);
             });
-        });
-    }
-
-    addUserForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const fullName = newUserFullName.value.trim();
-        const password = newUserPassword.value.trim();
-        const role = newUserRole.value;
-        addUserError.style.display = 'none';
-        if (!fullName || !password) {
-            addUserError.textContent = 'Заполните все поля';
-            addUserError.style.display = 'block';
-            return;
+            document.querySelectorAll('.user-del').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const name = this.dataset.name;
+                    if (name === currentUser.fullName) {
+                        alert('Нельзя удалить самого себя');
+                        return;
+                    }
+                    if (confirm(`Удалить пользователя ${name}?`)) {
+                        let users = getUsers().filter(u => u.fullName !== name);
+                        saveUsers(users);
+                        renderUserList();
+                    }
+                });
+            });
         }
-        const users = getUsers();
-        if (users.find(u => u.fullName === fullName)) {
-            addUserError.textContent = 'Пользователь с таким ФИО уже существует';
-            addUserError.style.display = 'block';
-            return;
-        }
-        users.push({ fullName, password, role });
-        saveUsers(users);
-        renderUserList();
-        newUserFullName.value = '';
-        newUserPassword.value = '';
-        alert('Пользователь добавлен');
-    });
 
-    employeeForm.addEventListener('submit', handleFormSubmit);
-
-    document.addEventListener('input', function(e) {
-        if (e.target.matches('#lastName, #firstName, #personalNumber')) {
-            validateField(e.target);
-        }
-    });
-
-    document.getElementById('department').addEventListener('change', function() {
-        const dept = this.value;
-        if (!dept) return;
-        const deptEmployees = employees.filter(e => e.department === dept);
-        if (deptEmployees.length === 0) return;
-        const rankCount = {};
-        const posCount = {};
-        deptEmployees.forEach(e => {
-            if (e.rank) rankCount[e.rank] = (rankCount[e.rank] || 0) + 1;
-            if (e.position) posCount[e.position] = (posCount[e.position] || 0) + 1;
-        });
-        let mostRank = Object.keys(rankCount).sort((a,b) => rankCount[b]-rankCount[a])[0] || '';
-        let mostPos = Object.keys(posCount).sort((a,b) => posCount[b]-posCount[a])[0] || '';
-        const rankField = document.getElementById('rank');
-        if (!rankField.value) rankField.value = mostRank;
-        const posField = document.getElementById('position');
-        if (!posField.value) posField.value = mostPos;
-    });
-
-    document.getElementById('quickModeCheck').addEventListener('change', function() {
-        document.querySelectorAll('.extended-fields').forEach(el => {
-            el.style.display = this.checked ? 'none' : 'flex';
-        });
-    });
-
-    document.addEventListener('change', function(e) {
-        if (e.target && e.target.id === 'photo') {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    document.getElementById('photoPreviewImg').src = ev.target.result;
-                    document.getElementById('photoPreview').style.display = 'block';
-                };
-                reader.readAsDataURL(file);
+        addUserForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fullName = newUserFullName?.value.trim() || '';
+            const password = newUserPassword?.value.trim() || '';
+            const role = newUserRole?.value || 'user';
+            if (addUserError) addUserError.style.display = 'none';
+            if (!fullName || !password) {
+                if (addUserError) {
+                    addUserError.textContent = 'Заполните все поля';
+                    addUserError.style.display = 'block';
+                }
+                return;
             }
-        }
-    });
-    document.addEventListener('click', function(e) {
-        if (e.target && e.target.id === 'removePhotoBtn') {
-            document.getElementById('photo').value = '';
-            document.getElementById('photoPreview').style.display = 'none';
-            document.getElementById('photoPreviewImg').src = '#';
-        }
-    });
+            const users = getUsers();
+            if (users.find(u => u.fullName === fullName)) {
+                if (addUserError) {
+                    addUserError.textContent = 'Пользователь с таким ФИО уже существует';
+                    addUserError.style.display = 'block';
+                }
+                return;
+            }
+            users.push({ fullName, password, role });
+            saveUsers(users);
+            renderUserList();
+            if (newUserFullName) newUserFullName.value = '';
+            if (newUserPassword) newUserPassword.value = '';
+            alert('Пользователь добавлен');
+        });
+    }
 
-    initGroupAction();
-
-    loginScreen.style.display = 'flex';
-    appContent.style.display = 'none';
+    // Начальное состояние
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (appContent) appContent.style.display = 'none';
 });
-
-// ===== ОТЧЁТЫ (PDF) — ЧЕРЕЗ html2pdf (корректно с кириллицей) =====
-function generateReport(emp) {
-    if (typeof html2pdf === 'undefined') {
-        alert('Библиотека html2pdf не загружена. Проверьте подключение.');
-        return;
-    }
-    const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
-    const fields = [
-        ['ФИО', fio],
-        ['Дата рождения', emp.birthDate || '—'],
-        ['Пол', emp.gender || '—'],
-        ['Подразделение', emp.department || '—'],
-        ['Звание', emp.rank || '—'],
-        ['Должность', emp.position || '—'],
-        ['Личный номер', emp.personalNumber || '—'],
-        ['Дата принятия', emp.hireDate || '—'],
-        ['Статус', emp.status || '—'],
-        ['Псевдоним', emp.alias || '—'],
-        ['Допуск', emp.dop || '—'],
-        ['Агентурная', emp.qualAgent ? 'Да' : 'Нет'],
-        ['Наружное', emp.qualSurveillance ? 'Да' : 'Нет'],
-        ['Шифр.', emp.qualCrypto ? 'Да' : 'Нет'],
-        ['Особые отметки', emp.notes || '—'],
-        ['Резолюция', emp.resolution || '—'],
-        ['Отметки', emp.marks || '—']
-    ];
-
-    let rowsHtml = fields.map(([label, value]) => `
-        <tr>
-            <td style="font-weight:bold; padding:8px 12px; border-bottom:1px solid #ddd; width:35%;">${label}</td>
-            <td style="padding:8px 12px; border-bottom:1px solid #ddd; word-wrap:break-word;">${value}</td>
-        </tr>
-    `).join('');
-
-    let photoHtml = '';
-    if (emp.photo && emp.photo.length > 100) {
-        photoHtml = `<div style="text-align:center; margin-bottom:16px;"><img src="${emp.photo}" style="max-width:150px; max-height:200px; border:2px solid #d4af37; border-radius:8px;" /></div>`;
-    }
-
-    const htmlContent = `
-        <div style="font-family: 'Times New Roman', Times, serif; max-width: 700px; margin:0 auto; padding:20px; background:white;">
-            <h2 style="text-align:center; color:#0b1a2e; border-bottom:3px solid #d4af37; padding-bottom:8px;">ОТЧЁТ О СОТРУДНИКЕ</h2>
-            ${photoHtml}
-            <table style="width:100%; border-collapse:collapse; font-size:14px; table-layout:fixed;">
-                <colgroup>
-                    <col style="width:35%;">
-                    <col style="width:65%;">
-                </colgroup>
-                <tbody>
-                    ${rowsHtml}
-                </tbody>
-            </table>
-            <div style="margin-top:30px; text-align:center; color:#7a8a9e; font-size:12px; border-top:1px solid #ddd; padding-top:12px;">
-                Сформировано в АСУЛС ТУ ФСБ<br>
-                ${new Date().toLocaleDateString()}
-            </div>
-        </div>
-    `;
-
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    container.style.width = '700px';
-    container.style.background = 'white';
-    container.style.padding = '20px';
-    container.style.zIndex = '-1';
-    container.innerHTML = htmlContent;
-    document.body.appendChild(container);
-
-    const opt = {
-        margin:        [10, 10],
-        filename:      `Отчёт_${emp.lastName}_${emp.firstName}.pdf`,
-        image:         { type: 'jpeg', quality: 0.98 },
-        html2canvas:   { scale: 2, letterRendering: true, useCORS: true, logging: false },
-        jsPDF:         { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().set(opt).from(container).save().then(() => {
-        document.body.removeChild(container);
-    }).catch((err) => {
-        console.error(err);
-        document.body.removeChild(container);
-        alert('Ошибка при создании PDF. Пожалуйста, проверьте консоль.');
-    });
-}
-
-function printEmployeeCard(emp) {
-    generateReport(emp);
-}
-
-function generateSummaryReport() {
-    if (typeof html2pdf === 'undefined') {
-        alert('Библиотека html2pdf не загружена. Проверьте подключение.');
-        return;
-    }
-    if (filteredEmployees.length === 0) {
-        alert('Нет данных для отчёта');
-        return;
-    }
-
-    let rowsHtml = filteredEmployees.map((emp, idx) => {
-        const status = emp.status || '';
-        return `
-        <tr>
-            <td style="text-align:center; padding:6px 8px; border-bottom:1px solid #ddd;">${idx+1}</td>
-            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}</td>
-            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.department || ''}</td>
-            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.rank || ''}</td>
-            <td style="padding:6px 8px; border-bottom:1px solid #ddd; word-wrap:break-word;">${emp.position || ''}</td>
-            <td style="padding:6px 8px; border-bottom:1px solid #ddd; white-space:nowrap;">${status}</td>
-        </tr>`;
-    }).join('');
-
-    const htmlContent = `
-        <div style="font-family: 'Times New Roman', Times, serif; max-width: 1100px; margin:0 auto; padding:20px; background:white;">
-            <h2 style="text-align:center; color:#0b1a2e; border-bottom:3px solid #d4af37; padding-bottom:8px;">СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ ТУ ФСБ</h2>
-            <p style="text-align:center; color:#5a6a7a; margin-bottom:20px;">Всего сотрудников: ${filteredEmployees.length}</p>
-            <table style="width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed;">
-                <colgroup>
-                    <col style="width:6%;">
-                    <col style="width:32%;">
-                    <col style="width:18%;">
-                    <col style="width:14%;">
-                    <col style="width:18%;">
-                    <col style="width:12%;">
-                </colgroup>
-                <thead>
-                    <tr style="background:#1a2f44; color:#fff;">
-                        <th style="padding:8px 10px; text-align:center;">№</th>
-                        <th style="padding:8px 10px; text-align:left;">ФИО</th>
-                        <th style="padding:8px 10px; text-align:left;">Подразделение</th>
-                        <th style="padding:8px 10px; text-align:left;">Звание</th>
-                        <th style="padding:8px 10px; text-align:left;">Должность</th>
-                        <th style="padding:8px 10px; text-align:left;">Статус</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rowsHtml}
-                </tbody>
-            </table>
-            <div style="margin-top:30px; text-align:center; color:#7a8a9e; font-size:12px; border-top:1px solid #ddd; padding-top:12px;">
-                Сформировано в АСУЛС ТУ ФСБ<br>
-                ${new Date().toLocaleDateString()}
-            </div>
-        </div>
-    `;
-
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    container.style.width = '1100px';
-    container.style.background = 'white';
-    container.style.padding = '20px';
-    container.style.zIndex = '-1';
-    container.innerHTML = htmlContent;
-    document.body.appendChild(container);
-
-    const opt = {
-        margin:        [10, 10],
-        filename:      'Сводный_отчёт_ТУ_ФСБ.pdf',
-        image:         { type: 'jpeg', quality: 0.98 },
-        html2canvas:   { scale: 2, letterRendering: true, useCORS: true, logging: false },
-        jsPDF:         { unit: 'mm', format: 'a4', orientation: 'landscape' }
-    };
-
-    html2pdf().set(opt).from(container).save().then(() => {
-        document.body.removeChild(container);
-    }).catch((err) => {
-        console.error(err);
-        document.body.removeChild(container);
-        alert('Ошибка при создании PDF. Пожалуйста, проверьте консоль.');
-    });
-}
