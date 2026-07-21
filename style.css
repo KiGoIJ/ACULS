@@ -637,3 +637,44 @@ table td:first-child input[type="checkbox"] {
     line-height: 1.8;        /* Увеличиваем межстрочный интервал */
     white-space: normal;     /* Разрешаем переносы */
 }
+
+/* ===== СТАТИСТИКА – КАРТОЧКИ КАТЕГОРИЙ ===== */
+.stats-category {
+    margin-top: 24px;
+}
+.stats-category-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1a2f44;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #d4af37;
+    padding-bottom: 6px;
+}
+.stats-cards-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.stat-card-item {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 10px 16px;
+    min-width: 90px;
+    text-align: center;
+    border-left: 4px solid #d4af37;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    flex: 0 0 auto;
+}
+.stat-card-item .stat-card-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #5a6a7a;
+    font-weight: 500;
+}
+.stat-card-item .stat-card-value {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #0b1a2e;
+    line-height: 1.4;
+}
