@@ -70,20 +70,30 @@ function authenticate(fullName, password, masterPassword) {
     return { success: true, user: user };
 }
 
-// ===== РЕГИСТРАЦИЯ =====
+// ===== РЕГИСТРАЦИЯ (с логами) =====
 function registerUser(fullName, password, masterPassword) {
+    console.log('🔐 Попытка регистрации:', fullName);
+    console.log('Введённый мастер-пароль:', masterPassword);
+    console.log('Хранимый мастер-пароль:', getMasterPassword());
+    
     if (masterPassword !== getMasterPassword()) {
+        console.error('❌ Неверный мастер-пароль');
         return { success: false, message: 'Неверный мастер-пароль' };
     }
     const users = getUsers();
+    console.log('Текущие пользователи до регистрации:', users);
     if (users.find(u => u.fullName === fullName)) {
+        console.error('❌ Пользователь уже существует');
         return { success: false, message: 'Пользователь с таким ФИО уже существует' };
     }
     if (password.length < 4) {
+        console.error('❌ Слишком короткий пароль');
         return { success: false, message: 'Пароль должен быть не менее 4 символов' };
     }
     users.push({ fullName, password, role: 'user' });
     saveUsers(users);
+    console.log('✅ Пользователь добавлен:', fullName);
+    console.log('Обновлённый список пользователей:', getUsers());
     return { success: true };
 }
 
@@ -1054,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (result.success) {
                 alert('Регистрация успешна! Теперь войдите в систему.');
                 registerModal.style.display = 'none';
-                // Автоматически входим
+                console.log('🔑 Автоматический вход после регистрации:', fullName);
                 login(fullName, password, masterPassword);
             } else {
                 registerError.textContent = result.message;
@@ -1225,6 +1235,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function renderUserList() {
             const users = getUsers();
+            console.log('📋 Отображение списка пользователей:', users);
             userListDiv.innerHTML = '';
             users.forEach(u => {
                 const div = document.createElement('div');
