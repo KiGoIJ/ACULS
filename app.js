@@ -15,7 +15,6 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const auth = firebase.auth();
 
-// Анонимная авторизация
 auth.signInAnonymously()
     .then(() => console.log('✅ Анонимная авторизация успешна'))
     .catch(error => {
@@ -69,6 +68,23 @@ function authenticate(fullName, password, masterPassword) {
         return { success: false, message: 'Неверное ФИО или пароль' };
     }
     return { success: true, user: user };
+}
+
+// ===== РЕГИСТРАЦИЯ =====
+function registerUser(fullName, password, masterPassword) {
+    if (masterPassword !== getMasterPassword()) {
+        return { success: false, message: 'Неверный мастер-пароль' };
+    }
+    const users = getUsers();
+    if (users.find(u => u.fullName === fullName)) {
+        return { success: false, message: 'Пользователь с таким ФИО уже существует' };
+    }
+    if (password.length < 4) {
+        return { success: false, message: 'Пароль должен быть не менее 4 символов' };
+    }
+    users.push({ fullName, password, role: 'user' });
+    saveUsers(users);
+    return { success: true };
 }
 
 // ===== СОСТОЯНИЕ =====
@@ -255,7 +271,6 @@ function populateDatalist(id, values) {
 
 // ===== СТАТИСТИКА (КАРТОЧКИ) =====
 function updateStats(list) {
-    // Обновляем цифровые карточки
     const total = document.getElementById('totalCount');
     const active = document.getElementById('activeCount');
     const inactive = document.getElementById('inactiveCount');
@@ -308,7 +323,6 @@ function renderStatsCards(containerId, data) {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = '';
-    // Сортируем по убыванию чисел
     const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
     sorted.forEach(([label, value]) => {
         const card = document.createElement('div');
@@ -907,6 +921,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById('logoutBtn');
     const userDisplay = document.getElementById('userDisplay');
     const manageUsersBtn = document.getElementById('manageUsersBtn');
+    const deleteAllBtn = document.getElementById('deleteAllBtn');
     const importExcelBtn = document.getElementById('importExcelBtn');
     const importJsonBtn = document.getElementById('importJsonBtn');
     const exportExcelBtn = document.getElementById('exportExcelBtn');
@@ -937,6 +952,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterRank = document.getElementById('filterRank');
     const filterStatus = document.getElementById('filterStatus');
 
+    // === ЭЛЕМЕНТЫ РЕГИСТРАЦИИ ===
+    const registerBtn = document.getElementById('registerBtn');
+    const registerModal = document.getElementById('registerModal');
+    const registerClose = document.getElementById('registerClose');
+    const registerForm = document.getElementById('registerForm');
+    const regFullName = document.getElementById('regFullName');
+    const regPassword = document.getElementById('regPassword');
+    const regMasterPassword = document.getElementById('regMasterPassword');
+    const registerError = document.getElementById('registerError');
+
+    // === ФУНКЦИЯ ВХОДА ===
     function login(fullName, password, masterPassword) {
         const result = authenticate(fullName, password, masterPassword);
         if (result.success) {
@@ -949,6 +975,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const formCard = document.getElementById('formCard');
             if (formCard) formCard.style.display = isAdmin ? 'block' : 'none';
             if (manageUsersBtn) manageUsersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+            if (deleteAllBtn) deleteAllBtn.style.display = isAdmin ? 'inline-flex' : 'none';
             if (importExcelBtn) importExcelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
             if (importJsonBtn) importJsonBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
@@ -980,14 +1007,63 @@ document.addEventListener('DOMContentLoaded', function() {
         employeesRef.off();
     }
 
+    // === ОБРАБОТЧИК ВХОДА ===
     if (loginForm) {
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
             login(loginFullName?.value || '', loginPassword?.value || '', loginMasterPassword?.value || '');
         });
     }
+
     if (logoutBtn) logoutBtn.addEventListener('click', logout);
 
+    // === РЕГИСТРАЦИЯ ===
+    if (registerBtn && registerModal && registerClose && registerForm) {
+        registerBtn.addEventListener('click', function() {
+            registerModal.style.display = 'flex';
+            regFullName.value = '';
+            regPassword.value = '';
+            regMasterPassword.value = '';
+            registerError.style.display = 'none';
+        });
+
+        registerClose.addEventListener('click', function() {
+            registerModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', function(e) {
+            if (e.target === registerModal) {
+                registerModal.style.display = 'none';
+            }
+        });
+
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fullName = regFullName.value.trim();
+            const password = regPassword.value.trim();
+            const masterPassword = regMasterPassword.value.trim();
+            registerError.style.display = 'none';
+
+            if (!fullName || !password || !masterPassword) {
+                registerError.textContent = 'Заполните все поля';
+                registerError.style.display = 'block';
+                return;
+            }
+
+            const result = registerUser(fullName, password, masterPassword);
+            if (result.success) {
+                alert('Регистрация успешна! Теперь войдите в систему.');
+                registerModal.style.display = 'none';
+                // Автоматически входим
+                login(fullName, password, masterPassword);
+            } else {
+                registerError.textContent = result.message;
+                registerError.style.display = 'block';
+            }
+        });
+    }
+
+    // === ФИЛЬТРЫ ===
     const filterEls = [filterDepartment, filterRank, filterStatus, searchField, searchInput];
     filterEls.forEach(el => {
         if (el) {
@@ -1006,6 +1082,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // === ЭКСПОРТ/ИМПОРТ ===
     if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportToExcel);
     if (importExcelBtn && importExcelInput) {
         importExcelBtn.addEventListener('click', () => importExcelInput.click());
@@ -1051,6 +1128,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (summaryReportBtn) summaryReportBtn.addEventListener('click', generateSummaryReport);
 
+    // === УДАЛЕНИЕ ВСЕХ ===
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener('click', function() {
+            if (employees.length === 0) {
+                alert('База уже пуста.');
+                return;
+            }
+            if (!confirm('⚠️ ВНИМАНИЕ! Вы собираетесь УДАЛИТЬ ВСЕХ СОТРУДНИКОВ без возможности восстановления. Продолжить?')) {
+                return;
+            }
+            const code = prompt('Для подтверждения введите слово "УДАЛИТЬ" (заглавными буквами):');
+            if (code !== 'УДАЛИТЬ') {
+                alert('Удаление отменено.');
+                return;
+            }
+            if (!confirm('Последний шанс! Точно удалить всех сотрудников?')) {
+                return;
+            }
+            employees = [];
+            saveData();
+            filteredEmployees = [];
+            applyFilters();
+            alert('Все сотрудники удалены.');
+        });
+    }
+
+    // === СМЕНА ПАРОЛЯ ===
     if (changePasswordBtn && changePasswordModal && modalClose && changePasswordForm) {
         changePasswordBtn.addEventListener('click', function() {
             changePasswordModal.style.display = 'flex';
@@ -1107,6 +1211,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // === УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (АДМИН) ===
     if (manageUsersBtn && manageUsersModal && manageUsersClose && userListDiv && addUserForm) {
         manageUsersBtn.addEventListener('click', function() {
             if (!isAdmin) return;
@@ -1176,6 +1281,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Начальное состояние
     if (loginScreen) loginScreen.style.display = 'flex';
     if (appContent) appContent.style.display = 'none';
 });
