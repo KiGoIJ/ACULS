@@ -10,7 +10,6 @@ const firebaseConfig = {
     measurementId: "G-SL4YS8CEKE"
 };
 
-// ===== ИНИЦИАЛИЗАЦИЯ FIREBASE =====
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const auth = firebase.auth();
@@ -24,7 +23,7 @@ auth.signInAnonymously()
 
 const employeesRef = database.ref('employees');
 
-// ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (локально) =====
+// ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (localStorage) =====
 const USERS_KEY = 'asuls_users';
 const MASTER_KEY = 'asuls_master_password';
 const DEFAULT_MASTER = '123456';
@@ -70,30 +69,19 @@ function authenticate(fullName, password, masterPassword) {
     return { success: true, user: user };
 }
 
-// ===== РЕГИСТРАЦИЯ =====
 function registerUser(fullName, password, masterPassword) {
-    console.log('🔐 Попытка регистрации:', fullName);
-    console.log('Введённый мастер-пароль:', masterPassword);
-    console.log('Хранимый мастер-пароль:', getMasterPassword());
-    
     if (masterPassword !== getMasterPassword()) {
-        console.error('❌ Неверный мастер-пароль');
         return { success: false, message: 'Неверный мастер-пароль' };
     }
     const users = getUsers();
-    console.log('Текущие пользователи до регистрации:', users);
     if (users.find(u => u.fullName === fullName)) {
-        console.error('❌ Пользователь уже существует');
         return { success: false, message: 'Пользователь с таким ФИО уже существует' };
     }
     if (password.length < 4) {
-        console.error('❌ Слишком короткий пароль');
         return { success: false, message: 'Пароль должен быть не менее 4 символов' };
     }
     users.push({ fullName, password, role: 'user' });
     saveUsers(users);
-    console.log('✅ Пользователь добавлен:', fullName);
-    console.log('Обновлённый список пользователей:', getUsers());
     return { success: true };
 }
 
@@ -127,7 +115,6 @@ function loadData() {
     });
 }
 
-// ===== СОХРАНЕНИЕ ДАННЫХ В FIREBASE =====
 function saveData() {
     const data = {};
     employees.forEach(emp => {
@@ -150,7 +137,7 @@ function generatePersonalNumber() {
     return year + String(maxNum + 1).padStart(4, '0');
 }
 
-// ===== ВАЛИДАЦИЯ ПОЛЕЙ =====
+// ===== ВАЛИДАЦИЯ =====
 function validateField(input) {
     const id = input.id;
     const value = input.value.trim();
@@ -279,7 +266,7 @@ function populateDatalist(id, values) {
     });
 }
 
-// ===== СТАТИСТИКА (КАРТОЧКИ) =====
+// ===== СТАТИСТИКА =====
 function updateStats(list) {
     const total = document.getElementById('totalCount');
     const active = document.getElementById('activeCount');
@@ -341,7 +328,7 @@ function renderStatsCards(containerId, data) {
     });
 }
 
-// ===== ОТРИСОВКА ТАБЛИЦЫ =====
+// ===== ОТРИСОВКА ТАБЛИЦЫ СОТРУДНИКОВ =====
 function renderTable(data) {
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
@@ -399,8 +386,7 @@ function renderTable(data) {
                 if (!emp) return;
                 editingId = id;
                 fillForm(emp);
-                const formTitle = document.getElementById('formTitle');
-                if (formTitle) formTitle.textContent = 'Редактировать сотрудника';
+                document.getElementById('formTitle').textContent = 'Редактировать сотрудника';
                 const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
                 if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Сохранить';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -451,23 +437,17 @@ function renderTable(data) {
 
 function updateSelectedCount() {
     const count = document.querySelectorAll('.row-checkbox:checked').length;
-    const el = document.getElementById('selectedCount');
-    if (el) el.textContent = `Выбрано: ${count}`;
+    document.getElementById('selectedCount').textContent = `Выбрано: ${count}`;
 }
 
 function copyEmployee(emp) {
     editingId = null;
     fillForm(emp);
-    const lastName = document.getElementById('lastName');
-    const firstName = document.getElementById('firstName');
-    const patronymic = document.getElementById('patronymic');
-    if (lastName) lastName.value = '';
-    if (firstName) firstName.value = '';
-    if (patronymic) patronymic.value = '';
-    const formTitle = document.getElementById('formTitle');
-    if (formTitle) formTitle.textContent = 'Копирование сотрудника';
-    const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
-    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Добавить';
+    document.getElementById('lastName').value = '';
+    document.getElementById('firstName').value = '';
+    document.getElementById('patronymic').value = '';
+    document.getElementById('formTitle').textContent = 'Копирование сотрудника';
+    document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -477,21 +457,19 @@ function fillForm(emp) {
         const el = document.getElementById(f);
         if (el) el.value = emp[f] || '';
     });
-    const gender = document.getElementById('gender');
-    if (gender) gender.value = emp.gender || 'мужской';
-    const status = document.getElementById('status');
-    if (status) status.value = emp.status || 'действует';
+    document.getElementById('gender').value = emp.gender || 'мужской';
+    document.getElementById('status').value = emp.status || 'действует';
 
     const photoInput = document.getElementById('photo');
     const preview = document.getElementById('photoPreview');
     const previewImg = document.getElementById('photoPreviewImg');
     if (emp.photo && emp.photo.length > 100) {
-        if (previewImg) previewImg.src = emp.photo;
-        if (preview) preview.style.display = 'block';
-        if (photoInput) photoInput.value = '';
+        previewImg.src = emp.photo;
+        preview.style.display = 'block';
+        photoInput.value = '';
     } else {
-        if (preview) preview.style.display = 'none';
-        if (previewImg) previewImg.src = '#';
+        preview.style.display = 'none';
+        previewImg.src = '#';
     }
     document.querySelectorAll('.form-group input').forEach(inp => inp.classList.remove('error', 'success'));
 }
@@ -500,29 +478,21 @@ function resetForm() {
     const form = document.getElementById('employeeForm');
     if (form) form.reset();
     editingId = null;
-    const preview = document.getElementById('photoPreview');
-    const previewImg = document.getElementById('photoPreviewImg');
-    const photoInput = document.getElementById('photo');
-    if (preview) preview.style.display = 'none';
-    if (previewImg) previewImg.src = '#';
-    if (photoInput) photoInput.value = '';
-    const formTitle = document.getElementById('formTitle');
-    if (formTitle) formTitle.textContent = 'Добавить сотрудника';
-    const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
-    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Добавить';
+    document.getElementById('photoPreview').style.display = 'none';
+    document.getElementById('photoPreviewImg').src = '#';
+    document.getElementById('photo').value = '';
+    document.getElementById('formTitle').textContent = 'Добавить сотрудника';
+    document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
     document.querySelectorAll('.form-group input').forEach(inp => inp.classList.remove('error', 'success'));
-    const personalNumber = document.getElementById('personalNumber');
-    if (personalNumber) personalNumber.value = generatePersonalNumber();
+    document.getElementById('personalNumber').value = generatePersonalNumber();
 }
 
-// Валидация в реальном времени
 document.addEventListener('input', function(e) {
     if (e.target.matches('#lastName, #firstName, #personalNumber')) {
         validateField(e.target);
     }
 });
 
-// Автозаполнение по подразделению
 const departmentEl = document.getElementById('department');
 if (departmentEl) {
     departmentEl.addEventListener('change', function() {
@@ -545,26 +515,18 @@ if (departmentEl) {
     });
 }
 
-// Быстрая форма
-const quickCheck = document.getElementById('quickModeCheck');
-if (quickCheck) {
-    quickCheck.addEventListener('change', function() {
-        const extended = document.querySelector('.extended-fields');
-        if (extended) extended.style.display = this.checked ? 'none' : 'block';
-    });
-}
+document.getElementById('quickModeCheck').addEventListener('change', function() {
+    document.querySelector('.extended-fields').style.display = this.checked ? 'none' : 'block';
+});
 
-// Предпросмотр фото
 document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'photo') {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = function(ev) {
-                const previewImg = document.getElementById('photoPreviewImg');
-                const preview = document.getElementById('photoPreview');
-                if (previewImg) previewImg.src = ev.target.result;
-                if (preview) preview.style.display = 'block';
+                document.getElementById('photoPreviewImg').src = ev.target.result;
+                document.getElementById('photoPreview').style.display = 'block';
             };
             reader.readAsDataURL(file);
         }
@@ -572,16 +534,13 @@ document.addEventListener('change', function(e) {
 });
 document.addEventListener('click', function(e) {
     if (e.target && e.target.id === 'removePhotoBtn') {
-        const photoInput = document.getElementById('photo');
-        const preview = document.getElementById('photoPreview');
-        const previewImg = document.getElementById('photoPreviewImg');
-        if (photoInput) photoInput.value = '';
-        if (preview) preview.style.display = 'none';
-        if (previewImg) previewImg.src = '#';
+        document.getElementById('photo').value = '';
+        document.getElementById('photoPreview').style.display = 'none';
+        document.getElementById('photoPreviewImg').src = '#';
     }
 });
 
-// ===== ОБРАБОТКА ФОРМЫ =====
+// ===== ОБРАБОТКА ФОРМЫ СОТРУДНИКА =====
 const employeeForm = document.getElementById('employeeForm');
 if (employeeForm) {
     employeeForm.addEventListener('submit', function(e) {
@@ -612,17 +571,17 @@ if (employeeForm) {
 
         const newEmp = {
             id: editingId || Date.now().toString(),
-            lastName: document.getElementById('lastName')?.value.trim() || '',
-            firstName: document.getElementById('firstName')?.value.trim() || '',
-            patronymic: document.getElementById('patronymic')?.value.trim() || '',
-            birthDate: document.getElementById('birthDate')?.value || '',
-            gender: document.getElementById('gender')?.value || 'мужской',
-            department: document.getElementById('department')?.value.trim() || '',
-            rank: document.getElementById('rank')?.value.trim() || '',
-            position: document.getElementById('position')?.value.trim() || '',
+            lastName: lastName.value.trim(),
+            firstName: firstName.value.trim(),
+            patronymic: document.getElementById('patronymic').value.trim(),
+            birthDate: document.getElementById('birthDate').value,
+            gender: document.getElementById('gender').value,
+            department: document.getElementById('department').value.trim(),
+            rank: document.getElementById('rank').value.trim(),
+            position: document.getElementById('position').value.trim(),
             personalNumber: personalNumber,
-            hireDate: document.getElementById('hireDate')?.value || '',
-            status: document.getElementById('status')?.value || 'действует',
+            hireDate: document.getElementById('hireDate').value,
+            status: document.getElementById('status').value,
             photo: photoData
         };
 
@@ -658,25 +617,24 @@ if (groupApplyBtn) {
         const error = document.getElementById('groupActionError');
         if (error) error.style.display = 'none';
         if (action === 'status') {
-            if (title) title.innerHTML = '<i class="fas fa-edit"></i> Изменить статус';
-            if (label) label.textContent = 'Новый статус';
-            if (field) field.placeholder = 'действует, отпуск, командировка, уволен';
+            title.innerHTML = '<i class="fas fa-edit"></i> Изменить статус';
+            label.textContent = 'Новый статус';
+            field.placeholder = 'действует, отпуск, командировка, уволен';
         } else if (action === 'department') {
-            if (title) title.innerHTML = '<i class="fas fa-edit"></i> Изменить подразделение';
-            if (label) label.textContent = 'Новое подразделение';
-            if (field) field.placeholder = 'Введите название';
+            title.innerHTML = '<i class="fas fa-edit"></i> Изменить подразделение';
+            label.textContent = 'Новое подразделение';
+            field.placeholder = 'Введите название';
         }
-        if (field) field.value = '';
-        if (modal) modal.style.display = 'flex';
-        if (field) field.focus();
+        field.value = '';
+        modal.style.display = 'flex';
+        field.focus();
     });
 }
 
 const groupClose = document.getElementById('groupActionClose');
 if (groupClose) {
     groupClose.addEventListener('click', function() {
-        const modal = document.getElementById('groupActionModal');
-        if (modal) modal.style.display = 'none';
+        document.getElementById('groupActionModal').style.display = 'none';
     });
 }
 const groupForm = document.getElementById('groupActionForm');
@@ -687,10 +645,8 @@ if (groupForm) {
         const value = document.getElementById('groupActionValue')?.value.trim();
         const error = document.getElementById('groupActionError');
         if (!value) {
-            if (error) {
-                error.textContent = 'Введите значение';
-                error.style.display = 'block';
-            }
+            error.textContent = 'Введите значение';
+            error.style.display = 'block';
             return;
         }
         const checked = document.querySelectorAll('.row-checkbox:checked');
@@ -704,21 +660,18 @@ if (groupForm) {
         });
         if (changed > 0) {
             saveData();
-            const modal = document.getElementById('groupActionModal');
-            if (modal) modal.style.display = 'none';
+            document.getElementById('groupActionModal').style.display = 'none';
             document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
             updateSelectedCount();
             alert(`Изменено ${changed} сотрудников`);
         } else {
-            if (error) {
-                error.textContent = 'Не удалось применить';
-                error.style.display = 'block';
-            }
+            error.textContent = 'Не удалось применить';
+            error.style.display = 'block';
         }
     });
 }
 
-// ===== ПОКАЗ ФОТО В МОДАЛКЕ =====
+// ===== ПОКАЗ ФОТО =====
 function showPhotoModal(src, name) {
     const modal = document.createElement('div');
     modal.className = 'modal photo-modal';
@@ -736,7 +689,7 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== PDF ОТЧЁТЫ =====
+// ===== PDF =====
 function generateReport(emp) {
     try {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
@@ -766,31 +719,7 @@ function generateReport(emp) {
 }
 
 function printEmployeeCard(emp) {
-    try {
-        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
-        const docDefinition = {
-            content: [
-                { text: 'ЛИЧНОЕ ДЕЛО', style: 'header', alignment: 'center' },
-                { text: '\n\n' },
-                { text: `ФИО: ${fio}` },
-                { text: `Дата рождения: ${emp.birthDate || '—'}` },
-                { text: `Пол: ${emp.gender || '—'}` },
-                { text: `Подразделение: ${emp.department || '—'}` },
-                { text: `Звание: ${emp.rank || '—'}` },
-                { text: `Должность: ${emp.position || '—'}` },
-                { text: `Личный номер: ${emp.personalNumber || '—'}` },
-                { text: `Дата принятия: ${emp.hireDate || '—'}` },
-                { text: `Статус: ${emp.status || '—'}` },
-                { text: '\n\n' },
-                { text: `Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
-            ],
-            styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } },
-            defaultStyle: { fontSize: 12 }
-        };
-        pdfMake.createPdf(docDefinition).download(`Личное_дело_${emp.lastName}_${emp.firstName}.pdf`);
-    } catch(e) {
-        alert('Ошибка генерации PDF: ' + e.message);
-    }
+    generateReport(emp);
 }
 
 function generateSummaryReport() {
@@ -840,11 +769,11 @@ function generateSummaryReport() {
     }
 }
 
-// ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
+// ===== ЭКСПОРТ/ИМПОРТ EXCEL =====
 function exportToExcel() {
     try {
         if (typeof XLSX === 'undefined') {
-            alert('Библиотека XLSX не загружена. Проверьте интернет-соединение.');
+            alert('Библиотека XLSX не загружена.');
             return;
         }
         const data = filteredEmployees.map(emp => ({
@@ -872,7 +801,7 @@ function exportToExcel() {
 function importFromExcel(file) {
     try {
         if (typeof XLSX === 'undefined') {
-            alert('Библиотека XLSX не загружена. Проверьте интернет-соединение.');
+            alert('Библиотека XLSX не загружена.');
             return;
         }
         const reader = new FileReader();
@@ -927,6 +856,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById('logoutBtn');
     const userDisplay = document.getElementById('userDisplay');
     const manageUsersBtn = document.getElementById('manageUsersBtn');
+    const showEmployeesBtn = document.getElementById('showEmployeesBtn');
     const deleteAllBtn = document.getElementById('deleteAllBtn');
     const importExcelBtn = document.getElementById('importExcelBtn');
     const importJsonBtn = document.getElementById('importJsonBtn');
@@ -944,21 +874,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const newPassword = document.getElementById('newPassword');
     const confirmPassword = document.getElementById('confirmPassword');
     const changePasswordError = document.getElementById('changePasswordError');
-    const manageUsersModal = document.getElementById('manageUsersModal');
-    const manageUsersClose = document.getElementById('manageUsersClose');
-    const userListDiv = document.getElementById('userList');
-    const addUserForm = document.getElementById('addUserForm');
-    const newUserFullName = document.getElementById('newUserFullName');
-    const newUserPassword = document.getElementById('newUserPassword');
-    const newUserRole = document.getElementById('newUserRole');
-    const addUserError = document.getElementById('addUserError');
     const searchInput = document.getElementById('searchInput');
     const searchField = document.getElementById('searchField');
     const filterDepartment = document.getElementById('filterDepartment');
     const filterRank = document.getElementById('filterRank');
     const filterStatus = document.getElementById('filterStatus');
+    const employeesSection = document.getElementById('employeesSection');
+    const usersSection = document.getElementById('usersSection');
+    const usersTableBody = document.getElementById('usersTableBody');
 
-    // === ЭЛЕМЕНТЫ РЕГИСТРАЦИИ ===
+    // Элементы управления пользователями
+    const addUserForm = document.getElementById('addUserForm');
+    const newUserFullName = document.getElementById('newUserFullName');
+    const newUserPassword = document.getElementById('newUserPassword');
+    const newUserRole = document.getElementById('newUserRole');
+    const addUserError = document.getElementById('addUserError');
+
+    // Регистрация
     const registerBtn = document.getElementById('registerBtn');
     const registerModal = document.getElementById('registerModal');
     const registerClose = document.getElementById('registerClose');
@@ -974,100 +906,181 @@ document.addEventListener('DOMContentLoaded', function() {
         if (result.success) {
             currentUser = result.user;
             isAdmin = currentUser.role === 'admin';
-            if (loginScreen) loginScreen.style.display = 'none';
-            if (appContent) appContent.style.display = 'block';
-            if (userDisplay) userDisplay.textContent = currentUser.fullName + (isAdmin ? ' (админ)' : '');
+            loginScreen.style.display = 'none';
+            appContent.style.display = 'block';
+            userDisplay.textContent = currentUser.fullName + (isAdmin ? ' (админ)' : '');
 
             const formCard = document.getElementById('formCard');
             if (formCard) formCard.style.display = isAdmin ? 'block' : 'none';
             if (manageUsersBtn) manageUsersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+            if (showEmployeesBtn) showEmployeesBtn.style.display = 'none';
             if (deleteAllBtn) deleteAllBtn.style.display = isAdmin ? 'inline-flex' : 'none';
             if (importExcelBtn) importExcelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
             if (importJsonBtn) importJsonBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
+            // Показываем секцию сотрудников, скрываем управление
+            employeesSection.style.display = 'block';
+            usersSection.style.display = 'none';
+
             loadData();
-            if (loginError) loginError.style.display = 'none';
-            if (loginFullName) loginFullName.value = '';
-            if (loginPassword) loginPassword.value = '';
-            if (loginMasterPassword) loginMasterPassword.value = '';
+            loginError.style.display = 'none';
+            loginFullName.value = '';
+            loginPassword.value = '';
+            loginMasterPassword.value = '';
         } else {
-            if (loginError) {
-                loginError.textContent = result.message;
-                loginError.style.display = 'block';
-            }
-            if (loginPassword) loginPassword.value = '';
-            if (loginMasterPassword) loginMasterPassword.value = '';
-            if (loginFullName) loginFullName.focus();
+            loginError.textContent = result.message;
+            loginError.style.display = 'block';
+            loginPassword.value = '';
+            loginMasterPassword.value = '';
+            loginFullName.focus();
         }
     }
 
     function logout() {
         currentUser = null;
         isAdmin = false;
-        if (appContent) appContent.style.display = 'none';
-        if (loginScreen) loginScreen.style.display = 'flex';
-        if (loginFullName) loginFullName.value = '';
-        if (loginPassword) loginPassword.value = '';
-        if (loginMasterPassword) loginMasterPassword.value = '';
-        if (loginError) loginError.style.display = 'none';
+        appContent.style.display = 'none';
+        loginScreen.style.display = 'flex';
+        loginFullName.value = '';
+        loginPassword.value = '';
+        loginMasterPassword.value = '';
+        loginError.style.display = 'none';
         employeesRef.off();
     }
 
-    // === ОБРАБОТЧИК ВХОДА ===
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            login(loginFullName?.value || '', loginPassword?.value || '', loginMasterPassword?.value || '');
-        });
-    }
-
-    if (logoutBtn) logoutBtn.addEventListener('click', logout);
+    loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        login(loginFullName.value, loginPassword.value, loginMasterPassword.value);
+    });
+    logoutBtn.addEventListener('click', logout);
 
     // === РЕГИСТРАЦИЯ ===
-    if (registerBtn && registerModal && registerClose && registerForm) {
-        registerBtn.addEventListener('click', function() {
-            registerModal.style.display = 'flex';
-            regFullName.value = '';
-            regPassword.value = '';
-            regMasterPassword.value = '';
-            registerError.style.display = 'none';
-        });
-
-        registerClose.addEventListener('click', function() {
+    registerBtn.addEventListener('click', function() {
+        registerModal.style.display = 'flex';
+        regFullName.value = '';
+        regPassword.value = '';
+        regMasterPassword.value = '';
+        registerError.style.display = 'none';
+    });
+    registerClose.addEventListener('click', function() {
+        registerModal.style.display = 'none';
+    });
+    window.addEventListener('click', function(e) {
+        if (e.target === registerModal) registerModal.style.display = 'none';
+    });
+    registerForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const fullName = regFullName.value.trim();
+        const password = regPassword.value.trim();
+        const masterPassword = regMasterPassword.value.trim();
+        registerError.style.display = 'none';
+        if (!fullName || !password || !masterPassword) {
+            registerError.textContent = 'Заполните все поля';
+            registerError.style.display = 'block';
+            return;
+        }
+        const result = registerUser(fullName, password, masterPassword);
+        if (result.success) {
+            alert('Регистрация успешна! Теперь войдите в систему.');
             registerModal.style.display = 'none';
+            login(fullName, password, masterPassword);
+        } else {
+            registerError.textContent = result.message;
+            registerError.style.display = 'block';
+        }
+    });
+
+    // === ПЕРЕКЛЮЧЕНИЕ МЕЖДУ РАЗДЕЛАМИ ===
+    manageUsersBtn.addEventListener('click', function() {
+        if (!isAdmin) return;
+        employeesSection.style.display = 'none';
+        usersSection.style.display = 'block';
+        showEmployeesBtn.style.display = 'inline-flex';
+        renderUserTable(); // обновляем таблицу пользователей
+    });
+    showEmployeesBtn.addEventListener('click', function() {
+        employeesSection.style.display = 'block';
+        usersSection.style.display = 'none';
+        showEmployeesBtn.style.display = 'none';
+    });
+
+    // === УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (таблица) ===
+    function renderUserTable() {
+        const users = getUsers();
+        usersTableBody.innerHTML = '';
+        users.forEach((u, index) => {
+            const tr = document.createElement('tr');
+            const isSelf = u.fullName === currentUser.fullName;
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${u.fullName}</td>
+                <td><span class="role-badge ${u.role}">${u.role === 'admin' ? 'Администратор' : 'Пользователь'}</span></td>
+                <td>
+                    ${!isSelf ? `
+                        <button class="btn-icon role" data-name="${u.fullName}" data-action="toggle-role" title="Сменить роль"><i class="fas fa-exchange-alt"></i></button>
+                        <button class="btn-icon delete" data-name="${u.fullName}" data-action="delete-user" title="Удалить"><i class="fas fa-trash"></i></button>
+                    ` : `
+                        <span style="color:#7a8a9e; font-size:0.85rem;">(это вы)</span>
+                    `}
+                </td>
+            `;
+            usersTableBody.appendChild(tr);
         });
 
-        window.addEventListener('click', function(e) {
-            if (e.target === registerModal) {
-                registerModal.style.display = 'none';
-            }
-        });
-
-        registerForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const fullName = regFullName.value.trim();
-            const password = regPassword.value.trim();
-            const masterPassword = regMasterPassword.value.trim();
-            registerError.style.display = 'none';
-
-            if (!fullName || !password || !masterPassword) {
-                registerError.textContent = 'Заполните все поля';
-                registerError.style.display = 'block';
-                return;
-            }
-
-            const result = registerUser(fullName, password, masterPassword);
-            if (result.success) {
-                alert('Регистрация успешна! Теперь войдите в систему.');
-                registerModal.style.display = 'none';
-                console.log('🔑 Автоматический вход после регистрации:', fullName);
-                login(fullName, password, masterPassword);
-            } else {
-                registerError.textContent = result.message;
-                registerError.style.display = 'block';
-            }
+        // Обработчики для кнопок
+        document.querySelectorAll('#usersTableBody .btn-icon').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const name = this.dataset.name;
+                const action = this.dataset.action;
+                if (action === 'delete-user') {
+                    if (confirm(`Удалить пользователя ${name}?`)) {
+                        let users = getUsers().filter(u => u.fullName !== name);
+                        saveUsers(users);
+                        renderUserTable();
+                        // Если удалили админа, проверим
+                        const adminExists = users.some(u => u.role === 'admin');
+                        if (!adminExists && users.length > 0) {
+                            alert('Внимание! В системе больше нет администраторов. Назначьте нового.');
+                        }
+                    }
+                } else if (action === 'toggle-role') {
+                    let users = getUsers();
+                    const user = users.find(u => u.fullName === name);
+                    if (user) {
+                        user.role = user.role === 'admin' ? 'user' : 'admin';
+                        saveUsers(users);
+                        renderUserTable();
+                    }
+                }
+            });
         });
     }
+
+    // Добавление пользователя
+    addUserForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const fullName = newUserFullName.value.trim();
+        const password = newUserPassword.value.trim();
+        const role = newUserRole.value;
+        addUserError.style.display = 'none';
+        if (!fullName || !password) {
+            addUserError.textContent = 'Заполните все поля';
+            addUserError.style.display = 'block';
+            return;
+        }
+        const users = getUsers();
+        if (users.find(u => u.fullName === fullName)) {
+            addUserError.textContent = 'Пользователь с таким ФИО уже существует';
+            addUserError.style.display = 'block';
+            return;
+        }
+        users.push({ fullName, password, role });
+        saveUsers(users);
+        renderUserTable();
+        newUserFullName.value = '';
+        newUserPassword.value = '';
+        alert('Пользователь добавлен');
+    });
 
     // === ФИЛЬТРЫ ===
     const filterEls = [filterDepartment, filterRank, filterStatus, searchField, searchInput];
@@ -1077,233 +1090,122 @@ document.addEventListener('DOMContentLoaded', function() {
             el.addEventListener('input', applyFilters);
         }
     });
-    if (clearFiltersBtn) {
-        clearFiltersBtn.addEventListener('click', function() {
-            if (filterDepartment) filterDepartment.value = '';
-            if (filterRank) filterRank.value = '';
-            if (filterStatus) filterStatus.value = '';
-            if (searchField) searchField.value = 'all';
-            if (searchInput) searchInput.value = '';
-            applyFilters();
-        });
-    }
+    clearFiltersBtn.addEventListener('click', function() {
+        filterDepartment.value = '';
+        filterRank.value = '';
+        filterStatus.value = '';
+        searchField.value = 'all';
+        searchInput.value = '';
+        applyFilters();
+    });
 
     // === ЭКСПОРТ/ИМПОРТ ===
-    if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportToExcel);
-    if (importExcelBtn && importExcelInput) {
-        importExcelBtn.addEventListener('click', () => importExcelInput.click());
-        importExcelInput.addEventListener('change', function(e) {
-            if (this.files.length) {
-                importFromExcel(this.files[0]);
-                this.value = '';
-            }
-        });
-    }
-    if (exportJsonBtn) {
-        exportJsonBtn.addEventListener('click', function() {
-            const blob = new Blob([JSON.stringify(employees, null, 2)], { type: 'application/json' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'asuls_data.json';
-            link.click();
-        });
-    }
-    if (importJsonBtn && importJsonInput) {
-        importJsonBtn.addEventListener('click', () => importJsonInput.click());
-        importJsonInput.addEventListener('change', function(e) {
-            const file = this.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                try {
-                    const imported = JSON.parse(ev.target.result);
-                    if (Array.isArray(imported)) {
-                        if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
-                            employees = imported;
-                            saveData();
-                            alert('Импорт выполнен успешно');
-                        }
-                    }
-                } catch (err) {
-                    alert('Ошибка импорта: неверный формат JSON');
-                }
-            };
-            reader.readAsText(file);
+    exportExcelBtn.addEventListener('click', exportToExcel);
+    importExcelBtn.addEventListener('click', () => importExcelInput.click());
+    importExcelInput.addEventListener('change', function(e) {
+        if (this.files.length) {
+            importFromExcel(this.files[0]);
             this.value = '';
-        });
-    }
-    if (summaryReportBtn) summaryReportBtn.addEventListener('click', generateSummaryReport);
+        }
+    });
+    exportJsonBtn.addEventListener('click', function() {
+        const blob = new Blob([JSON.stringify(employees, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'asuls_data.json';
+        link.click();
+    });
+    importJsonBtn.addEventListener('click', () => importJsonInput.click());
+    importJsonInput.addEventListener('change', function(e) {
+        const file = this.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                const imported = JSON.parse(ev.target.result);
+                if (Array.isArray(imported)) {
+                    if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
+                        employees = imported;
+                        saveData();
+                        alert('Импорт выполнен успешно');
+                    }
+                }
+            } catch (err) {
+                alert('Ошибка импорта: неверный формат JSON');
+            }
+        };
+        reader.readAsText(file);
+        this.value = '';
+    });
+    summaryReportBtn.addEventListener('click', generateSummaryReport);
 
     // === УДАЛЕНИЕ ВСЕХ ===
-    if (deleteAllBtn) {
-        deleteAllBtn.addEventListener('click', function() {
-            if (employees.length === 0) {
-                alert('База уже пуста.');
-                return;
-            }
-            if (!confirm('⚠️ ВНИМАНИЕ! Вы собираетесь УДАЛИТЬ ВСЕХ СОТРУДНИКОВ без возможности восстановления. Продолжить?')) {
-                return;
-            }
-            const code = prompt('Для подтверждения введите слово "УДАЛИТЬ" (заглавными буквами):');
-            if (code !== 'УДАЛИТЬ') {
-                alert('Удаление отменено.');
-                return;
-            }
-            if (!confirm('Последний шанс! Точно удалить всех сотрудников?')) {
-                return;
-            }
-            employees = [];
-            saveData();
-            filteredEmployees = [];
-            applyFilters();
-            alert('Все сотрудники удалены.');
-        });
-    }
+    deleteAllBtn.addEventListener('click', function() {
+        if (employees.length === 0) {
+            alert('База уже пуста.');
+            return;
+        }
+        if (!confirm('⚠️ ВНИМАНИЕ! Удалить всех сотрудников?')) return;
+        const code = prompt('Для подтверждения введите слово "УДАЛИТЬ" (заглавными буквами):');
+        if (code !== 'УДАЛИТЬ') {
+            alert('Удаление отменено.');
+            return;
+        }
+        if (!confirm('Последний шанс! Точно удалить всех?')) return;
+        employees = [];
+        saveData();
+        filteredEmployees = [];
+        applyFilters();
+        alert('Все сотрудники удалены.');
+    });
 
     // === СМЕНА ПАРОЛЯ ===
-    if (changePasswordBtn && changePasswordModal && modalClose && changePasswordForm) {
-        changePasswordBtn.addEventListener('click', function() {
-            changePasswordModal.style.display = 'flex';
-            if (oldPassword) oldPassword.value = '';
-            if (newPassword) newPassword.value = '';
-            if (confirmPassword) confirmPassword.value = '';
-            if (changePasswordError) changePasswordError.style.display = 'none';
-        });
-        modalClose.addEventListener('click', () => changePasswordModal.style.display = 'none');
-        window.addEventListener('click', function(e) {
-            if (e.target === changePasswordModal) changePasswordModal.style.display = 'none';
-        });
-        changePasswordForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const oldPwd = oldPassword?.value || '';
-            const newPwd = newPassword?.value || '';
-            const confirmPwd = confirmPassword?.value || '';
-            if (changePasswordError) changePasswordError.style.display = 'none';
-            if (newPwd !== confirmPwd) {
-                if (changePasswordError) {
-                    changePasswordError.textContent = 'Новый пароль и подтверждение не совпадают.';
-                    changePasswordError.style.display = 'block';
-                }
-                return;
-            }
-            if (oldPwd !== currentUser.password) {
-                if (changePasswordError) {
-                    changePasswordError.textContent = 'Неверный старый пароль.';
-                    changePasswordError.style.display = 'block';
-                }
-                return;
-            }
-            if (newPwd.length < 4) {
-                if (changePasswordError) {
-                    changePasswordError.textContent = 'Пароль должен быть не менее 4 символов.';
-                    changePasswordError.style.display = 'block';
-                }
-                return;
-            }
-            const users = getUsers();
-            const userIdx = users.findIndex(u => u.fullName === currentUser.fullName);
-            if (userIdx !== -1) {
-                users[userIdx].password = newPwd;
-                saveUsers(users);
-                currentUser.password = newPwd;
-                alert('Пароль успешно изменён!');
-                changePasswordModal.style.display = 'none';
-            } else {
-                if (changePasswordError) {
-                    changePasswordError.textContent = 'Ошибка сохранения.';
-                    changePasswordError.style.display = 'block';
-                }
-            }
-        });
-    }
-
-    // === УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (АДМИН) ===
-    if (manageUsersBtn && manageUsersModal && manageUsersClose && userListDiv) {
-        // Функция отображения списка пользователей
-        function renderUserList() {
-            const users = getUsers();
-            console.log('📋 Отображение списка пользователей:', users);
-            userListDiv.innerHTML = '';
-            if (users.length === 0) {
-                userListDiv.innerHTML = '<p style="color:#7a8a9e; text-align:center;">Нет зарегистрированных пользователей</p>';
-                return;
-            }
-            users.forEach(u => {
-                const div = document.createElement('div');
-                div.className = 'user-item';
-                div.innerHTML = `
-                    <span>${u.fullName} <span class="user-role">(${u.role})</span></span>
-                    <button class="user-del" data-name="${u.fullName}"><i class="fas fa-trash"></i></button>
-                `;
-                userListDiv.appendChild(div);
-            });
-            document.querySelectorAll('.user-del').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const name = this.dataset.name;
-                    if (name === currentUser.fullName) {
-                        alert('Нельзя удалить самого себя');
-                        return;
-                    }
-                    if (confirm(`Удалить пользователя ${name}?`)) {
-                        let users = getUsers().filter(u => u.fullName !== name);
-                        saveUsers(users);
-                        renderUserList(); // обновляем список после удаления
-                        // Если удалили администратора (кроме себя), обновим доступ
-                        const adminExists = users.some(u => u.role === 'admin');
-                        if (!adminExists && users.length > 0) {
-                            alert('Внимание! В системе больше нет администраторов. Назначьте нового.');
-                        }
-                    }
-                });
-            });
+    changePasswordBtn.addEventListener('click', function() {
+        changePasswordModal.style.display = 'flex';
+        oldPassword.value = '';
+        newPassword.value = '';
+        confirmPassword.value = '';
+        changePasswordError.style.display = 'none';
+    });
+    modalClose.addEventListener('click', () => changePasswordModal.style.display = 'none');
+    window.addEventListener('click', function(e) {
+        if (e.target === changePasswordModal) changePasswordModal.style.display = 'none';
+    });
+    changePasswordForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const oldPwd = oldPassword.value;
+        const newPwd = newPassword.value;
+        const confirmPwd = confirmPassword.value;
+        changePasswordError.style.display = 'none';
+        if (newPwd !== confirmPwd) {
+            changePasswordError.textContent = 'Новый пароль и подтверждение не совпадают.';
+            changePasswordError.style.display = 'block';
+            return;
         }
-
-        // Открытие модалки с обновлением списка
-        manageUsersBtn.addEventListener('click', function() {
-            if (!isAdmin) return;
-            renderUserList(); // обязательно обновляем перед показом
-            manageUsersModal.style.display = 'flex';
-        });
-
-        manageUsersClose.addEventListener('click', () => manageUsersModal.style.display = 'none');
-        window.addEventListener('click', function(e) {
-            if (e.target === manageUsersModal) manageUsersModal.style.display = 'none';
-        });
-
-        // Добавление пользователя через форму в модалке
-        if (addUserForm) {
-            addUserForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const fullName = newUserFullName?.value.trim() || '';
-                const password = newUserPassword?.value.trim() || '';
-                const role = newUserRole?.value || 'user';
-                if (addUserError) addUserError.style.display = 'none';
-                if (!fullName || !password) {
-                    if (addUserError) {
-                        addUserError.textContent = 'Заполните все поля';
-                        addUserError.style.display = 'block';
-                    }
-                    return;
-                }
-                const users = getUsers();
-                if (users.find(u => u.fullName === fullName)) {
-                    if (addUserError) {
-                        addUserError.textContent = 'Пользователь с таким ФИО уже существует';
-                        addUserError.style.display = 'block';
-                    }
-                    return;
-                }
-                users.push({ fullName, password, role });
-                saveUsers(users);
-                renderUserList(); // обновляем список
-                if (newUserFullName) newUserFullName.value = '';
-                if (newUserPassword) newUserPassword.value = '';
-                alert('Пользователь добавлен');
-            });
+        if (oldPwd !== currentUser.password) {
+            changePasswordError.textContent = 'Неверный старый пароль.';
+            changePasswordError.style.display = 'block';
+            return;
         }
-    }
+        if (newPwd.length < 4) {
+            changePasswordError.textContent = 'Пароль должен быть не менее 4 символов.';
+            changePasswordError.style.display = 'block';
+            return;
+        }
+        const users = getUsers();
+        const userIdx = users.findIndex(u => u.fullName === currentUser.fullName);
+        if (userIdx !== -1) {
+            users[userIdx].password = newPwd;
+            saveUsers(users);
+            currentUser.password = newPwd;
+            alert('Пароль успешно изменён!');
+            changePasswordModal.style.display = 'none';
+        } else {
+            changePasswordError.textContent = 'Ошибка сохранения.';
+            changePasswordError.style.display = 'block';
+        }
+    });
 
-    // Начальное состояние
-    if (loginScreen) loginScreen.style.display = 'flex';
-    if (appContent) appContent.style.display = 'none';
+    loginScreen.style.display = 'flex';
+    appContent.style.display = 'none';
 });
