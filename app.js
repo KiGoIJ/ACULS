@@ -689,7 +689,7 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== PDF =====
+// ===== PDF (ОБНОВЛЕН ТЕКСТ) =====
 function generateReport(emp) {
     try {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
@@ -707,7 +707,7 @@ function generateReport(emp) {
                 { text: `Дата принятия: ${emp.hireDate || '—'}` },
                 { text: `Статус: ${emp.status || '—'}` },
                 { text: '\n\n' },
-                { text: `Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
+                { text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
             ],
             styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } },
             defaultStyle: { fontSize: 12 }
@@ -719,7 +719,31 @@ function generateReport(emp) {
 }
 
 function printEmployeeCard(emp) {
-    generateReport(emp);
+    try {
+        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+        const docDefinition = {
+            content: [
+                { text: 'ЛИЧНОЕ ДЕЛО', style: 'header', alignment: 'center' },
+                { text: '\n\n' },
+                { text: `ФИО: ${fio}` },
+                { text: `Дата рождения: ${emp.birthDate || '—'}` },
+                { text: `Пол: ${emp.gender || '—'}` },
+                { text: `Подразделение: ${emp.department || '—'}` },
+                { text: `Звание: ${emp.rank || '—'}` },
+                { text: `Должность: ${emp.position || '—'}` },
+                { text: `Личный номер: ${emp.personalNumber || '—'}` },
+                { text: `Дата принятия: ${emp.hireDate || '—'}` },
+                { text: `Статус: ${emp.status || '—'}` },
+                { text: '\n\n' },
+                { text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
+            ],
+            styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } },
+            defaultStyle: { fontSize: 12 }
+        };
+        pdfMake.createPdf(docDefinition).download(`Личное_дело_${emp.lastName}_${emp.firstName}.pdf`);
+    } catch(e) {
+        alert('Ошибка генерации PDF: ' + e.message);
+    }
 }
 
 function generateSummaryReport() {
@@ -755,7 +779,7 @@ function generateSummaryReport() {
                 },
                 { text: '\n' },
                 { text: `Всего: ${filteredEmployees.length} сотрудников`, fontSize: 10 },
-                { text: `Сформировано в АСУЛС ТУ ФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
+                { text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
             ],
             styles: {
                 header: { fontSize: 16, bold: true, margin: [0, 0, 0, 10] },
@@ -918,7 +942,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (importExcelBtn) importExcelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
             if (importJsonBtn) importJsonBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
-            // Показываем секцию сотрудников, скрываем управление
             employeesSection.style.display = 'block';
             usersSection.style.display = 'none';
 
@@ -996,7 +1019,7 @@ document.addEventListener('DOMContentLoaded', function() {
         employeesSection.style.display = 'none';
         usersSection.style.display = 'block';
         showEmployeesBtn.style.display = 'inline-flex';
-        renderUserTable(); // обновляем таблицу пользователей
+        renderUserTable();
     });
     showEmployeesBtn.addEventListener('click', function() {
         employeesSection.style.display = 'block';
@@ -1027,7 +1050,6 @@ document.addEventListener('DOMContentLoaded', function() {
             usersTableBody.appendChild(tr);
         });
 
-        // Обработчики для кнопок
         document.querySelectorAll('#usersTableBody .btn-icon').forEach(btn => {
             btn.addEventListener('click', function() {
                 const name = this.dataset.name;
@@ -1037,7 +1059,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         let users = getUsers().filter(u => u.fullName !== name);
                         saveUsers(users);
                         renderUserTable();
-                        // Если удалили админа, проверим
                         const adminExists = users.some(u => u.role === 'admin');
                         if (!adminExists && users.length > 0) {
                             alert('Внимание! В системе больше нет администраторов. Назначьте нового.');
