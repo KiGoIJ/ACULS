@@ -274,7 +274,6 @@ body {
     line-height: 1.4;
 }
 
-/* Карточки категорий */
 .stats-category {
     margin-top: 24px;
 }
@@ -426,20 +425,91 @@ table tbody tr:nth-child(even) {
 table tbody tr:nth-child(even):hover {
     background: #2a2a3e;
 }
+
+/* ===== ПОСЛЕДНЯЯ ЯЧЕЙКА С КНОПКАМИ – ВЫРАВНИВАНИЕ В ОДНУ ЛИНИЮ ===== */
 table td:last-child {
     display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: 4px;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 6px 4px;
 }
-table td:first-child input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+
+/* ===== КНОПКИ-ИКОНКИ (единый стиль) ===== */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.15rem;
     cursor: pointer;
+    transition: all 0.2s ease;
+    color: #aaaaaa;
+    flex-shrink: 0;
 }
-#selectAll {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
+.btn-icon:hover {
+    background: rgba(255,255,255,0.08);
+    transform: scale(1.1);
+}
+.btn-icon:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+}
+/* Цвета для разных действий */
+.btn-icon.edit {
+    color: #d4af37;
+}
+.btn-icon.edit:hover {
+    background: rgba(212, 175, 55, 0.15);
+}
+.btn-icon.copy {
+    color: #f39c12;
+}
+.btn-icon.copy:hover {
+    background: rgba(243, 156, 18, 0.15);
+}
+.btn-icon.delete {
+    color: #e74c3c;
+}
+.btn-icon.delete:hover {
+    background: rgba(231, 76, 60, 0.15);
+}
+.btn-icon.print {
+    color: #2ecc71;
+}
+.btn-icon.print:hover {
+    background: rgba(46, 204, 113, 0.15);
+}
+.btn-icon.report {
+    color: #9b59b6;
+}
+.btn-icon.report:hover {
+    background: rgba(155, 89, 182, 0.15);
+}
+.btn-icon.role {
+    color: #9b59b6;
+}
+.btn-icon.role:hover {
+    background: rgba(155, 89, 182, 0.15);
+}
+.btn-icon.save {
+    color: #2ecc71;
+}
+.btn-icon.save:hover {
+    background: rgba(46, 204, 113, 0.15);
+}
+.btn-icon.cancel {
+    color: #e74c3c;
+}
+.btn-icon.cancel:hover {
+    background: rgba(231, 76, 60, 0.15);
 }
 
 /* ===== INLINE-РЕДАКТИРОВАНИЕ ===== */
@@ -457,20 +527,6 @@ table td:first-child input[type="checkbox"] {
 .edit-row select:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
-}
-.btn-icon.save {
-    color: #2ecc71;
-}
-.btn-icon.save:hover {
-    background: #1a3a2a;
-    color: #2ecc71;
-}
-.btn-icon.cancel {
-    color: #e74c3c;
-}
-.btn-icon.cancel:hover {
-    background: #3a1a1a;
-    color: #e74c3c;
 }
 
 /* ===== СТАТУС-ИКОНКИ ===== */
@@ -506,59 +562,6 @@ table td:first-child input[type="checkbox"] {
 }
 .status-text {
     font-weight: 500;
-}
-
-/* ===== КНОПКИ В ТАБЛИЦЕ ===== */
-.btn-icon {
-    background: transparent;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: background 0.2s, color 0.2s;
-}
-.btn-icon.edit {
-    color: #d4af37;
-}
-.btn-icon.edit:hover {
-    background: #2a2a3e;
-    color: #f1c40f;
-}
-.btn-icon.copy {
-    color: #f39c12;
-}
-.btn-icon.copy:hover {
-    background: #2a2a3e;
-    color: #f39c12;
-}
-.btn-icon.delete {
-    color: #e74c3c;
-}
-.btn-icon.delete:hover {
-    background: #2a2a3e;
-    color: #e74c3c;
-}
-.btn-icon.print {
-    color: #2ecc71;
-}
-.btn-icon.print:hover {
-    background: #2a2a3e;
-    color: #2ecc71;
-}
-.btn-icon.report {
-    color: #9b59b6;
-}
-.btn-icon.report:hover {
-    background: #2a2a3e;
-    color: #9b59b6;
-}
-.btn-icon.role {
-    color: #9b59b6;
-}
-.btn-icon.role:hover {
-    background: #2a2a3e;
-    color: #9b59b6;
 }
 
 /* ===== ФОТО ===== */
@@ -708,6 +711,7 @@ table td:first-child input[type="checkbox"] {
         grid-template-columns: 1fr;
     }
     table td:last-child {
+        flex-wrap: wrap;
         justify-content: center;
     }
     .login-card {
@@ -721,81 +725,4 @@ table td:first-child input[type="checkbox"] {
     .card__title label {
         margin-left: 0 !important;
     }
-}
-
-/* ===== КНОПКИ В ТАБЛИЦЕ ===== */
-.btn-icon {
-    background: transparent;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    color: #aaaaaa;
-}
-.btn-icon:hover {
-    transform: scale(1.1);
-    background: rgba(255,255,255,0.08);
-}
-.btn-icon.edit {
-    color: #d4af37;
-}
-.btn-icon.edit:hover {
-    background: rgba(212, 175, 55, 0.15);
-}
-.btn-icon.copy {
-    color: #f39c12;
-}
-.btn-icon.copy:hover {
-    background: rgba(243, 156, 18, 0.15);
-}
-.btn-icon.delete {
-    color: #e74c3c;
-}
-.btn-icon.delete:hover {
-    background: rgba(231, 76, 60, 0.15);
-}
-.btn-icon.print {
-    color: #2ecc71;
-}
-.btn-icon.print:hover {
-    background: rgba(46, 204, 113, 0.15);
-}
-.btn-icon.report {
-    color: #9b59b6;
-}
-.btn-icon.report:hover {
-    background: rgba(155, 89, 182, 0.15);
-}
-.btn-icon.role {
-    color: #9b59b6;
-}
-.btn-icon.role:hover {
-    background: rgba(155, 89, 182, 0.15);
-}
-.btn-icon.save {
-    color: #2ecc71;
-}
-.btn-icon.save:hover {
-    background: rgba(46, 204, 113, 0.15);
-}
-.btn-icon.cancel {
-    color: #e74c3c;
-}
-.btn-icon.cancel:hover {
-    background: rgba(231, 76, 60, 0.15);
-}
-/* В таблице последняя ячейка с кнопками */
-table td:last-child {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
 }
