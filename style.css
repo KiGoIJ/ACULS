@@ -95,6 +95,7 @@ body {
     justify-content: center;
     gap: 12px;
     margin-bottom: 6px;
+    cursor: pointer;
 }
 
 .login-logo i {
@@ -102,6 +103,11 @@ body {
     font-size: 2.4rem;
     filter: drop-shadow(0 0 10px rgba(207, 161, 52, 0.4));
     animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* Эффект глитча при наведении на щит */
+.login-logo:hover i {
+    animation: glitch 0.3s linear infinite;
 }
 
 .login-logo span {
@@ -317,7 +323,7 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* ===== КАРТОЧКИ РАЗДЕЛОВ ===== */
+/* ===== КАРТОЧКИ РАЗДЕЛОВ (с высокотехнологичными уголками и курсорным прожектором) ===== */
 .main {
     margin: 35px auto;
     display: flex;
@@ -350,6 +356,36 @@ body {
     background: linear-gradient(90deg, #cfa134 0%, rgba(207, 161, 52, 0.1) 100%);
 }
 
+/* Футуристический уголок справа-внизу */
+.card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 12px; height: 12px;
+    border-bottom: 2px solid #cfa134;
+    border-right: 2px solid #cfa134;
+    border-radius: 0 0 16px 0;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Эффект прожектора при наведении мыши на карточку */
+.card-glow-overlay {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: 16px;
+    background: radial-gradient(400px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(207, 161, 52, 0.05), transparent 40%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.card:hover .card-glow-overlay {
+    opacity: 1;
+}
+
 .card__title {
     font-size: 1.35rem;
     font-weight: 600;
@@ -361,6 +397,8 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     padding-bottom: 14px;
     flex-wrap: wrap;
+    position: relative;
+    z-index: 2;
 }
 
 .card__title i {
@@ -430,7 +468,53 @@ body {
     line-height: 1.1;
 }
 
-/* Статистика категорий (Подразделения, Звания...) */
+/* ===== ТАКТИЧЕСКИЙ РАДАР HUD (В СТАТИСТИКЕ) ===== */
+.hud-radar-item {
+    border-left-color: #4299e1 !important;
+}
+
+.hud-radar {
+    grid-row: 1 / span 2;
+    grid-column: 1;
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.radar-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.radar-ring {
+    fill: none;
+    stroke: rgba(66, 153, 225, 0.2);
+    stroke-width: 0.75px;
+}
+
+.radar-line {
+    stroke: rgba(66, 153, 225, 0.12);
+    stroke-width: 0.5px;
+}
+
+.radar-center {
+    fill: #4299e1;
+    filter: drop-shadow(0 0 3px #4299e1);
+}
+
+.radar-sweep {
+    transform-origin: 50px 50px;
+    animation: sweep 4s linear infinite;
+}
+
+@keyframes sweep {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Статистика категорий */
 .stats-category {
     margin-top: 25px;
 }
@@ -456,8 +540,8 @@ body {
     background: #141b2a;
     border: 1px solid #1b2336;
     border-radius: 10px;
-    padding: 12px 18px;
-    min-width: 120px;
+    padding: 14px 18px;
+    min-width: 140px;
     flex: 1 1 calc(20% - 12px);
     text-align: left;
     border-left: 3px solid #cfa134;
@@ -466,7 +550,7 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    gap: 4px;
+    gap: 6px;
 }
 
 .stat-card-item:hover {
@@ -493,6 +577,25 @@ body {
     font-weight: 700;
     color: #ffffff;
     line-height: 1.2;
+}
+
+/* ===== СТИЛИ ДЛЯ МИКРО-ДИАГРАММ В СТАТИСТИКЕ ===== */
+.mini-chart-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+    margin-top: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.mini-chart-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #ae7d1c, #cfa134);
+    box-shadow: 0 0 5px rgba(207, 161, 52, 0.4);
+    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ===== ФИЛЬТРЫ ===== */
@@ -848,6 +951,15 @@ table td:last-child {
     100% { filter: drop-shadow(0 0 4px rgba(207, 161, 52, 0.2)); }
 }
 
+@keyframes glitch {
+    0% { transform: translate(0) skew(0deg); }
+    20% { transform: translate(-2px, 2px) skew(-5deg); }
+    40% { transform: translate(2px, -2px) skew(5deg); }
+    60% { transform: translate(-2px, -2px) skew(-3deg); }
+    80% { transform: translate(2px, 2px) skew(3deg); }
+    100% { transform: translate(0) skew(0deg); }
+}
+
 .status-text {
     font-weight: 700;
 }
@@ -871,7 +983,7 @@ table td:last-child {
     position: relative;
 }
 
-/* ===== МОДАЛЬНЫЕ ОКНА (High-Fidelity Overlays) ===== */
+/* ===== МОДАЛЬНЫНЫЕ ОКНА (High-Fidelity Overlays) ===== */
 .modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -1033,6 +1145,159 @@ table td:last-child {
     margin-top: 50px;
     font-size: 0.85rem;
     letter-spacing: 0.3px;
+}
+
+/* ===== СЛИЯНИЕ И БУТ-СКРИН ДЕШИФРОВАНИЯ ===== */
+.decrypting-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #04060b;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.decrypting-container {
+    width: 90%;
+    max-width: 600px;
+    background: rgba(17, 22, 34, 0.95);
+    border: 1px solid #cfa134;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 0 30px rgba(207, 161, 52, 0.2);
+    position: relative;
+    overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.decrypting-container .scanner-line {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #cfa134, transparent);
+    box-shadow: 0 0 10px #cfa134;
+    animation: scanning 2s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes scanning {
+    0% { top: 0%; }
+    100% { top: 100%; }
+}
+
+.terminal-header {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #cfa134;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(207, 161, 52, 0.2);
+    padding-bottom: 10px;
+}
+
+.terminal-body {
+    height: 180px;
+    overflow-y: hidden;
+    color: #48bb78;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.terminal-line {
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.cyber-progress-bar {
+    height: 6px;
+    background: #1a2233;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.cyber-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ae7d1c, #cfa134);
+    box-shadow: 0 0 8px #cfa134;
+    transition: width 0.1s linear;
+}
+
+.percent-display {
+    text-align: right;
+    font-size: 1.1rem;
+    color: #cfa134;
+    font-weight: 700;
+}
+
+/* ===== ЖУРНАЛ СИСТЕМНОЙ АКТИВНОСТИ ===== */
+.activity-log-card {
+    border-left-color: #48bb78 !important;
+}
+
+.activity-log-card::before {
+    background: linear-gradient(90deg, #48bb78 0%, rgba(72,187,120,0.1) 100%) !important;
+}
+
+.log-terminal {
+    height: 160px;
+    overflow-y: auto;
+    background: #05070c;
+    border: 1px solid #1b2336;
+    border-radius: 8px;
+    padding: 15px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    color: #48bb78;
+}
+
+.log-entry {
+    margin-bottom: 5px;
+    border-left: 2.5px solid rgba(72,187,120,0.35);
+    padding-left: 10px;
+    line-height: 1.4;
+    animation: textAppear 0.25s ease-out forwards;
+}
+
+@keyframes textAppear {
+    from { opacity: 0; transform: translateX(-4px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.log-time {
+    color: #718096;
+    margin-right: 8px;
+    font-weight: 600;
+}
+
+.log-op {
+    color: #cfa134;
+    font-weight: 700;
+    margin-right: 6px;
+}
+
+/* ===== АНИМАЦИЯ СТРОК ТАБЛИЦЫ ===== */
+@keyframes slideInRow {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.table-row-animate {
+    opacity: 0;
+    animation: slideInRow 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* ===== АДАПТИВНОСТЬ (Responsive Tech Layout) ===== */
