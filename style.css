@@ -426,24 +426,28 @@ table tbody tr:nth-child(even):hover {
     background: #2a2a3e;
 }
 
-/* ===== ПОСЛЕДНЯЯ ЯЧЕЙКА С КНОПКАМИ – ВЫРАВНИВАНИЕ В ОДНУ ЛИНИЮ ===== */
+/* ===== ЯЧЕЙКА С ДЕЙСТВИЯМИ – ЖЁСТКОЕ ВЫРАВНИВАНИЕ В ОДНУ СТРОКУ ===== */
 table td:last-child {
     display: flex;
-    flex-wrap: nowrap;
-    gap: 4px;
+    flex-wrap: nowrap;          /* запрещаем перенос на новую строку */
     align-items: center;
     justify-content: flex-start;
-    padding: 6px 4px;
+    gap: 6px;
+    padding: 6px 8px;
+    min-width: 200px;           /* гарантируем место для всех кнопок */
+    white-space: nowrap;
 }
 
-/* ===== КНОПКИ-ИКОНКИ (единый стиль) ===== */
+/* ===== ЕДИНЫЙ СТИЛЬ ДЛЯ ВСЕХ КНОПОК-ИКОНОК ===== */
 .btn-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex: 0 0 auto;             /* запрещаем сжатие */
     width: 32px;
     height: 32px;
     padding: 0;
+    margin: 0;
     background: transparent;
     border: none;
     border-radius: 6px;
@@ -451,7 +455,7 @@ table td:last-child {
     cursor: pointer;
     transition: all 0.2s ease;
     color: #aaaaaa;
-    flex-shrink: 0;
+    text-decoration: none;
 }
 .btn-icon:hover {
     background: rgba(255,255,255,0.08);
@@ -462,6 +466,7 @@ table td:last-child {
     cursor: not-allowed;
     transform: none !important;
 }
+
 /* Цвета для разных действий */
 .btn-icon.edit {
     color: #d4af37;
@@ -713,6 +718,7 @@ table td:last-child {
     table td:last-child {
         flex-wrap: wrap;
         justify-content: center;
+        min-width: unset;
     }
     .login-card {
         padding: 28px 20px;
