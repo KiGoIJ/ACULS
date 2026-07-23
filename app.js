@@ -24,6 +24,18 @@ auth.signInAnonymously()
 const employeesRef = database.ref('employees');
 const usersRef = database.ref('users');
 
+// ===== НАСТРОЙКА ШРИФТОВ ДЛЯ PDFMAKE (поддержка кириллицы) =====
+if (typeof pdfMake !== 'undefined') {
+    pdfMake.fonts = {
+        Roboto: {
+            normal: 'Roboto-Regular.ttf',
+            bold: 'Roboto-Medium.ttf',
+            italics: 'Roboto-Italic.ttf',
+            bolditalics: 'Roboto-MediumItalic.ttf'
+        }
+    };
+}
+
 // ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (синхронизация в Firebase) =====
 const MASTER_KEY = 'asuls_master_password';
 const DEFAULT_MASTER = '123456';
@@ -47,7 +59,8 @@ function loadUsers(callback) {
     usersRef.on('value', snapshot => {
         const data = snapshot.val();
         if (data) {
-            usersCache = Object.values(data);
+            // Загружаем данные робастно, поддерживая как массив, так и объект
+            usersCache = Array.isArray(data) ? data : Object.values(data);
         } else {
             // Если нет пользователей, создаём администратора
             const defaultUser = { fullName: 'Администратор', password: 'admin', role: 'admin' };
@@ -59,11 +72,8 @@ function loadUsers(callback) {
 }
 
 function saveUsers() {
-    const data = {};
-    usersCache.forEach(u => {
-        data[u.fullName] = u;
-    });
-    usersRef.set(data).catch(err => console.error('Ошибка сохранения пользователей:', err));
+    // Сохраняем пользователей как чистый JSON-массив, чтобы избежать ошибок с запрещенными символами в ключах (например, точками)
+    usersRef.set(usersCache).catch(err => console.error('Ошибка сохранения пользователей:', err));
 }
 
 function getUsers() {
@@ -229,7 +239,6 @@ function applyFilters() {
     });
     renderTable(filteredEmployees);
     updateStats(filteredEmployees);
-    updateSelectedCount();
 }
 
 // ===== ОБНОВЛЕНИЕ СПИСКОВ =====
@@ -339,12 +348,15 @@ function renderStatsCards(containerId, data) {
     });
 }
 
-// ===== ОТРИСОВКА ТАБЛИЦЫ С INLINE-РЕДАКТИРОВАНИЕМ =====
+// ===== ОТРИСОВКА ТАБЛИЦЫ С INLINE-РЕДАКТИРОВАНИЕМ И ЧЕКБОКСАМИ =====
 function renderTable(data) {
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    (data || filteredEmployees).forEach((emp) => {
+    
+    const listToRender = data || filteredEmployees;
+    
+    listToRender.forEach((emp) => {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
         const tr = document.createElement('tr');
         const hasPhoto = emp.photo && emp.photo.length > 100;
@@ -358,6 +370,7 @@ function renderTable(data) {
         if (editingRowId === emp.id) {
             tr.className = 'edit-row';
             tr.innerHTML = `
+                <td></td>
                 <td>
                     ${hasPhoto ? `<img src="${emp.photo}" alt="фото" style="width:40px; height:40px; border-radius:50%; object-fit:cover;" class="photo-thumb" />` : '<span style="color:#aaa;">—</span>'}
                 </td>
@@ -378,13 +391,16 @@ function renderTable(data) {
                     </select>
                 </td>
                 <td>
-                    <button class="btn-icon save" data-id="${emp.id}"><i class="fas fa-check"></i></button>
-                    <button class="btn-icon cancel" data-id="${emp.id}"><i class="fas fa-times"></i></button>
+                    <button class="btn-icon save" data-id="${emp.id}" title="Сохранить"><i class="fas fa-check"></i></button>
+                    <button class="btn-icon cancel" data-id="${emp.id}" title="Отменить"><i class="fas fa-times"></i></button>
                 </td>
             `;
         } else {
-            // Обычный вид (все иконки в одну линию)
+            // Обычный вид с чекбоксом в начале
             tr.innerHTML = `
+                <td style="text-align: center; vertical-align: middle;">
+                    <input type="checkbox" class="employee-select" data-id="${emp.id}" />
+                </td>
                 <td>
                     ${hasPhoto ? `<img src="${emp.photo}" alt="фото" style="width:40px; height:40px; border-radius:50%; object-fit:cover; cursor:pointer;" class="photo-thumb" data-id="${emp.id}" />` : '<span style="color:#aaa;">—</span>'}
                 </td>
@@ -399,15 +415,39 @@ function renderTable(data) {
                     </span>
                 </td>
                 <td>
-                    <button class="btn-icon edit" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-pencil-alt"></i></button>
-                    <button class="btn-icon copy" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-copy"></i></button>
-                    <button class="btn-icon delete" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-trash-alt"></i></button>
-                    <button class="btn-icon print" data-id="${emp.id}"><i class="fas fa-print"></i></button>
-                    <button class="btn-icon report" data-id="${emp.id}"><i class="fas fa-file-alt"></i></button>
+                    <button class="btn-icon edit" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} title="Редактировать"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="btn-icon copy" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} title="Копировать"><i class="fas fa-copy"></i></button>
+                    <button class="btn-icon delete" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} title="Удалить"><i class="fas fa-trash-alt"></i></button>
+                    <button class="btn-icon print" data-id="${emp.id}" title="Скачать личное дело (PDF)"><i class="fas fa-print"></i></button>
+                    <button class="btn-icon report" data-id="${emp.id}" title="Скачать отчёт (PDF)"><i class="fas fa-file-alt"></i></button>
                 </td>
             `;
         }
         tbody.appendChild(tr);
+    });
+
+    // Сбрасываем главный чекбокс при перерисовке
+    const selectAllCheck = document.getElementById('selectAllCheck');
+    if (selectAllCheck) selectAllCheck.checked = false;
+    updateSelectedCount();
+
+    // Обработчик для клика на чекбокс сотрудника
+    document.querySelectorAll('.employee-select').forEach(cb => {
+        cb.addEventListener('change', function() {
+            updateSelectedCount();
+            
+            // Если кто-то снял галочку, снимаем галочку со "Select All"
+            if (!this.checked && selectAllCheck) {
+                selectAllCheck.checked = false;
+            }
+            
+            // Если все отмечены, отмечаем "Select All"
+            if (selectAllCheck) {
+                const totalVisible = document.querySelectorAll('.employee-select').length;
+                const totalChecked = document.querySelectorAll('.employee-select:checked').length;
+                selectAllCheck.checked = (totalVisible === totalChecked && totalVisible > 0);
+            }
+        });
     });
 
     // Обработчики для inline-редактирования
@@ -423,6 +463,20 @@ function renderTable(data) {
             cancelInlineEdit(id);
         });
     });
+
+    // Добавляем сохранение по Enter и Escape на полях inline-редактирования
+    if (editingRowId) {
+        const rowInputs = document.querySelectorAll(`.edit-row input, .edit-row select`);
+        rowInputs.forEach(input => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    saveInlineEdit(editingRowId);
+                } else if (e.key === 'Escape') {
+                    cancelInlineEdit(editingRowId);
+                }
+            });
+        });
+    }
 
     // Обработчики для обычных кнопок (если не редактируется)
     if (!editingRowId) {
@@ -478,11 +532,10 @@ function renderTable(data) {
 // ===== INLINE-РЕДАКТИРОВАНИЕ =====
 function startInlineEdit(id) {
     if (editingRowId) {
-        // Если уже редактируется другая строка – отменить
         cancelInlineEdit(editingRowId);
     }
     editingRowId = id;
-    renderTable(filteredEmployees); // перерисовать
+    renderTable(filteredEmployees);
 }
 
 function cancelInlineEdit(id) {
@@ -525,16 +578,20 @@ function saveInlineEdit(id) {
 function copyEmployee(emp) {
     const newEmp = JSON.parse(JSON.stringify(emp));
     newEmp.id = Date.now().toString();
-    newEmp.lastName = '';
-    newEmp.firstName = '';
-    newEmp.patronymic = '';
+    newEmp.lastName = emp.lastName + ' (копия)';
+    newEmp.personalNumber = generatePersonalNumber();
     employees.push(newEmp);
     saveData();
     renderTable(filteredEmployees);
 }
 
+// ===== ОБНОВЛЕНИЕ СЧЕТЧИКА ВЫБРАННЫХ =====
 function updateSelectedCount() {
-    // убрали чекбоксы, просто заглушка
+    const checkedBoxes = document.querySelectorAll('.employee-select:checked');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    if (selectedCountSpan) {
+        selectedCountSpan.textContent = `Выбрано: ${checkedBoxes.length}`;
+    }
 }
 
 // ===== ОБРАБОТКА ФОРМЫ ДОБАВЛЕНИЯ =====
@@ -589,35 +646,75 @@ if (employeeForm) {
 }
 
 function resetForm() {
-    document.getElementById('employeeForm').reset();
-    document.getElementById('photoPreview').style.display = 'none';
-    document.getElementById('photoPreviewImg').src = '#';
-    document.getElementById('photo').value = '';
-    document.getElementById('formTitle').textContent = 'Добавить сотрудника';
-    document.querySelector('#employeeForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Добавить';
+    const form = document.getElementById('employeeForm');
+    if (form) form.reset();
+    
+    const photoPreview = document.getElementById('photoPreview');
+    if (photoPreview) photoPreview.style.display = 'none';
+    
+    const photoPreviewImg = document.getElementById('photoPreviewImg');
+    if (photoPreviewImg) photoPreviewImg.src = '#';
+    
+    const photoInput = document.getElementById('photo');
+    if (photoInput) photoInput.value = '';
+    
+    const formTitle = document.getElementById('formTitle');
+    if (formTitle) formTitle.textContent = 'Добавить сотрудника';
+    
+    const submitBtn = document.querySelector('#employeeForm button[type="submit"]');
+    if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Добавить';
+    
     document.querySelectorAll('.form-group input').forEach(inp => inp.classList.remove('error', 'success'));
-    document.getElementById('personalNumber').value = generatePersonalNumber();
+    
+    const personalNumberInput = document.getElementById('personalNumber');
+    if (personalNumberInput) personalNumberInput.value = generatePersonalNumber();
 }
 
-// ===== ГРУППОВОЕ ДЕЙСТВИЕ =====
+// ===== ГРУППОВЫЕ ДЕЙСТВИЯ (только для выбранных чекбоксами) =====
 const groupApplyBtn = document.getElementById('groupActionApplyBtn');
 if (groupApplyBtn) {
     groupApplyBtn.addEventListener('click', function() {
         const action = document.getElementById('groupActionSelect')?.value;
-        if (!action) { alert('Выберите действие'); return; }
-        const value = prompt('Введите новое значение:');
+        if (!action) { 
+            alert('Выберите групповое действие'); 
+            return; 
+        }
+        
+        const checkedBoxes = document.querySelectorAll('.employee-select:checked');
+        if (checkedBoxes.length === 0) {
+            alert('Выберите хотя бы одного сотрудника в таблице (отметьте галочкой)');
+            return;
+        }
+
+        const value = prompt('Введите новое значение для выбранных сотрудников:');
         if (value === null) return;
+        
+        const selectedIds = Array.from(checkedBoxes).map(cb => cb.dataset.id);
         let changed = 0;
+        
         employees.forEach(emp => {
-            if (action === 'status') { emp.status = value; changed++; }
-            else if (action === 'department') { emp.department = value; changed++; }
+            if (selectedIds.includes(emp.id)) {
+                if (action === 'status') { 
+                    emp.status = value; 
+                    changed++; 
+                } else if (action === 'department') { 
+                    emp.department = value; 
+                    changed++; 
+                }
+            }
         });
+        
         if (changed > 0) {
             saveData();
             renderTable(filteredEmployees);
             updateStats(filteredEmployees);
             populateFilterOptions();
-            alert(`Изменено ${changed} сотрудников`);
+            
+            // Сбрасываем главный чекбокс
+            const selectAllCheck = document.getElementById('selectAllCheck');
+            if (selectAllCheck) selectAllCheck.checked = false;
+            
+            alert(`Изменено сотрудников: ${changed}`);
         }
     });
 }
@@ -640,28 +737,52 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== PDF ОТЧЁТЫ =====
+// ===== PDF ОТЧЁТЫ (с поддержкой кириллицы и фото сотрудника) =====
 function generateReport(emp) {
     try {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+        const bodyContent = [
+            { text: `ФИО: ${fio}`, fontSize: 13, bold: true, margin: [0, 2] },
+            { text: `Личный номер: ${emp.personalNumber || '—'}`, fontSize: 11, margin: [0, 2] },
+            { text: `Дата рождения: ${emp.birthDate || '—'}`, margin: [0, 2] },
+            { text: `Пол: ${emp.gender || '—'}`, margin: [0, 2] },
+            { text: `Подразделение: ${emp.department || '—'}`, margin: [0, 2] },
+            { text: `Звание: ${emp.rank || '—'}`, margin: [0, 2] },
+            { text: `Должность: ${emp.position || '—'}`, margin: [0, 2] },
+            { text: `Дата принятия: ${emp.hireDate || '—'}`, margin: [0, 2] },
+            { text: `Статус: ${emp.status || '—'}`, margin: [0, 2], bold: true }
+        ];
+
+        const reportContent = [
+            { text: 'ОТЧЁТ О СОТРУДНИКЕ', style: 'header', alignment: 'center' },
+            { text: '\n\n' }
+        ];
+
+        if (emp.photo && emp.photo.startsWith('data:image')) {
+            reportContent.push({
+                columns: [
+                    {
+                        image: emp.photo,
+                        width: 120,
+                        alignment: 'center'
+                    },
+                    {
+                        stack: bodyContent,
+                        margin: [20, 0, 0, 0]
+                    }
+                ]
+            });
+        } else {
+            reportContent.push({ stack: bodyContent });
+        }
+
+        reportContent.push({ text: '\n\n\n' });
+        reportContent.push({ text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' });
+
         const docDefinition = {
-            content: [
-                { text: 'ОТЧЁТ О СОТРУДНИКЕ', style: 'header', alignment: 'center' },
-                { text: '\n\n' },
-                { text: `ФИО: ${fio}` },
-                { text: `Дата рождения: ${emp.birthDate || '—'}` },
-                { text: `Пол: ${emp.gender || '—'}` },
-                { text: `Подразделение: ${emp.department || '—'}` },
-                { text: `Звание: ${emp.rank || '—'}` },
-                { text: `Должность: ${emp.position || '—'}` },
-                { text: `Личный номер: ${emp.personalNumber || '—'}` },
-                { text: `Дата принятия: ${emp.hireDate || '—'}` },
-                { text: `Статус: ${emp.status || '—'}` },
-                { text: '\n\n' },
-                { text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
-            ],
+            content: reportContent,
             styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } },
-            defaultStyle: { fontSize: 12 }
+            defaultStyle: { font: 'Roboto', fontSize: 12 }
         };
         pdfMake.createPdf(docDefinition).download(`Отчёт_${emp.lastName}_${emp.firstName}.pdf`);
     } catch(e) {
@@ -672,24 +793,48 @@ function generateReport(emp) {
 function printEmployeeCard(emp) {
     try {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+        const bodyContent = [
+            { text: `ФИО: ${fio}`, fontSize: 13, bold: true, margin: [0, 2] },
+            { text: `Личный номер: ${emp.personalNumber || '—'}`, fontSize: 11, margin: [0, 2] },
+            { text: `Дата рождения: ${emp.birthDate || '—'}`, margin: [0, 2] },
+            { text: `Пол: ${emp.gender || '—'}`, margin: [0, 2] },
+            { text: `Подразделение: ${emp.department || '—'}`, margin: [0, 2] },
+            { text: `Звание: ${emp.rank || '—'}`, margin: [0, 2] },
+            { text: `Должность: ${emp.position || '—'}`, margin: [0, 2] },
+            { text: `Дата принятия: ${emp.hireDate || '—'}`, margin: [0, 2] },
+            { text: `Статус: ${emp.status || '—'}`, margin: [0, 2], bold: true }
+        ];
+
+        const cardContent = [
+            { text: 'ЛИЧНОЕ ДЕЛО СОТРУДНИКА', style: 'header', alignment: 'center' },
+            { text: '\n\n' }
+        ];
+
+        if (emp.photo && emp.photo.startsWith('data:image')) {
+            cardContent.push({
+                columns: [
+                    {
+                        image: emp.photo,
+                        width: 120,
+                        alignment: 'center'
+                    },
+                    {
+                        stack: bodyContent,
+                        margin: [20, 0, 0, 0]
+                    }
+                ]
+            });
+        } else {
+            cardContent.push({ stack: bodyContent });
+        }
+
+        cardContent.push({ text: '\n\n\n' });
+        cardContent.push({ text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' });
+
         const docDefinition = {
-            content: [
-                { text: 'ЛИЧНОЕ ДЕЛО', style: 'header', alignment: 'center' },
-                { text: '\n\n' },
-                { text: `ФИО: ${fio}` },
-                { text: `Дата рождения: ${emp.birthDate || '—'}` },
-                { text: `Пол: ${emp.gender || '—'}` },
-                { text: `Подразделение: ${emp.department || '—'}` },
-                { text: `Звание: ${emp.rank || '—'}` },
-                { text: `Должность: ${emp.position || '—'}` },
-                { text: `Личный номер: ${emp.personalNumber || '—'}` },
-                { text: `Дата принятия: ${emp.hireDate || '—'}` },
-                { text: `Статус: ${emp.status || '—'}` },
-                { text: '\n\n' },
-                { text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
-            ],
+            content: cardContent,
             styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } },
-            defaultStyle: { fontSize: 12 }
+            defaultStyle: { font: 'Roboto', fontSize: 12 }
         };
         pdfMake.createPdf(docDefinition).download(`Личное_дело_${emp.lastName}_${emp.firstName}.pdf`);
     } catch(e) {
@@ -723,7 +868,7 @@ function generateSummaryReport() {
                 {
                     table: {
                         headerRows: 1,
-                        widths: [20, 'auto', 'auto', 'auto', 'auto', 'auto'],
+                        widths: [20, '*', 'auto', 'auto', 'auto', 'auto'],
                         body: tableBody
                     },
                     style: 'table'
@@ -736,12 +881,61 @@ function generateSummaryReport() {
                 header: { fontSize: 16, bold: true, margin: [0, 0, 0, 10] },
                 table: { margin: [0, 5, 0, 5] }
             },
-            defaultStyle: { fontSize: 10 }
+            defaultStyle: { font: 'Roboto', fontSize: 10 }
         };
         pdfMake.createPdf(docDefinition).download('Сводный_отчёт.pdf');
     } catch(e) {
         alert('Ошибка генерации PDF: ' + e.message);
     }
+}
+
+// ===== УМНЫЙ ПАРСЕР ДАТ EXCEL (полностью исключает краши из-за русского формата дат DD.MM.YYYY) =====
+function parseExcelDate(val) {
+    if (!val) return '';
+    if (val instanceof Date) {
+        if (isNaN(val.getTime())) return '';
+        return val.toISOString().split('T')[0];
+    }
+    if (typeof val === 'number') {
+        // Конвертируем Excel serial date number
+        const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+        if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0];
+        }
+    }
+    const str = String(val).trim();
+    if (!str) return '';
+
+    // Регулярное выражение для поиска DD.MM.YYYY
+    const partsDMY = str.match(/^(\d{1,2})[\.\-\/](\d{1,2})[\.\-\/](\d{4})$/);
+    if (partsDMY) {
+        const d = parseInt(partsDMY[1], 10);
+        const m = parseInt(partsDMY[2], 10) - 1; // 0-indexed month
+        const y = parseInt(partsDMY[3], 10);
+        const date = new Date(y, m, d);
+        if (!isNaN(date.getTime())) {
+            return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+    }
+
+    // Регулярное выражение для поиска YYYY-MM-DD
+    const partsYMD = str.match(/^(\d{4})[\.\-\/](\d{1,2})[\.\-\/](\d{1,2})$/);
+    if (partsYMD) {
+        const y = parseInt(partsYMD[1], 10);
+        const m = parseInt(partsYMD[2], 10) - 1;
+        const d = parseInt(partsYMD[3], 10);
+        const date = new Date(y, m, d);
+        if (!isNaN(date.getTime())) {
+            return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+    }
+
+    // Запасной вариант парсинга
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString().split('T')[0];
+    }
+    return '';
 }
 
 // ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
@@ -791,13 +985,13 @@ function importFromExcel(file) {
                     lastName: (row['Фамилия'] || '').toString().trim(),
                     firstName: (row['Имя'] || '').toString().trim(),
                     patronymic: (row['Отчество'] || '').toString().trim(),
-                    birthDate: row['Дата рождения'] ? new Date(row['Дата рождения']).toISOString().split('T')[0] : '',
+                    birthDate: parseExcelDate(row['Дата рождения']),
                     gender: (row['Пол'] || '').toString().trim(),
                     department: (row['Подразделение'] || '').toString().trim(),
                     rank: (row['Звание'] || '').toString().trim(),
                     position: (row['Должность'] || '').toString().trim(),
                     personalNumber: (row['Личный номер'] || '').toString().trim(),
-                    hireDate: row['Дата принятия'] ? new Date(row['Дата принятия']).toISOString().split('T')[0] : '',
+                    hireDate: parseExcelDate(row['Дата принятия']),
                     status: (row['Статус'] || '').toString().trim()
                 }));
                 if (imported.length > 0) {
@@ -872,6 +1066,52 @@ document.addEventListener('DOMContentLoaded', function() {
     const regPassword = document.getElementById('regPassword');
     const regMasterPassword = document.getElementById('regMasterPassword');
     const registerError = document.getElementById('registerError');
+
+    const quickModeCheck = document.getElementById('quickModeCheck');
+    const extendedFields = document.querySelector('.extended-fields');
+
+    // Настройка превью и удаления фото
+    const photoInput = document.getElementById('photo');
+    const photoPreview = document.getElementById('photoPreview');
+    const photoPreviewImg = document.getElementById('photoPreviewImg');
+    const removePhotoBtn = document.getElementById('removePhotoBtn');
+
+    if (photoInput) {
+        photoInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (photoPreviewImg) photoPreviewImg.src = e.target.result;
+                    if (photoPreview) photoPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (removePhotoBtn) {
+        removePhotoBtn.addEventListener('click', function() {
+            if (photoInput) photoInput.value = '';
+            if (photoPreviewImg) photoPreviewImg.src = '#';
+            if (photoPreview) photoPreview.style.display = 'none';
+        });
+    }
+
+    // Скрыть/показать дополнительные поля в зависимости от чекбокса "Быстрая форма"
+    function toggleExtendedFields() {
+        if (!quickModeCheck || !extendedFields) return;
+        if (quickModeCheck.checked) {
+            extendedFields.style.display = 'none';
+        } else {
+            extendedFields.style.display = 'block';
+        }
+    }
+
+    if (quickModeCheck) {
+        toggleExtendedFields();
+        quickModeCheck.addEventListener('change', toggleExtendedFields);
+    }
 
     // Загружаем пользователей из Firebase
     loadUsers(() => {
@@ -1047,6 +1287,18 @@ document.addEventListener('DOMContentLoaded', function() {
         newUserPassword.value = '';
         alert('Пользователь добавлен');
     });
+
+    // === ГЛАВНЫЙ ЧЕКБОКС "ВЫБРАТЬ ВСЕХ" ===
+    const selectAllCheck = document.getElementById('selectAllCheck');
+    if (selectAllCheck) {
+        selectAllCheck.addEventListener('change', function() {
+            const isChecked = this.checked;
+            document.querySelectorAll('.employee-select').forEach(cb => {
+                cb.checked = isChecked;
+            });
+            updateSelectedCount();
+        });
+    }
 
     // === ФИЛЬТРЫ ===
     const filterEls = [filterDepartment, filterRank, filterStatus, searchField, searchInput];
