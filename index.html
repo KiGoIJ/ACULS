@@ -92,11 +92,11 @@
                     <button id="showEmployeesBtn" class="btn btn--gold" style="display:none;"><i class="fas fa-arrow-left"></i> Назад к сотрудникам</button>
                     <button id="deleteAllBtn" class="btn btn--danger" style="display:none;"><i class="fas fa-trash-alt"></i> Очистить базу</button>
                     <button id="logoutBtn" class="btn btn--secondary"><i class="fas fa-sign-out-alt"></i> Выйти</button>
-                    <button id="exportExcelBtn" class="btn btn--gold"><i class="fas fa-file-excel"></i> Excel</button>
-                    <button id="importExcelBtn" class="btn btn--gold"><i class="fas fa-file-import"></i> Импорт</button>
+                    <button id="exportExcelBtn" class="btn btn--gold"><i class="fas fa-file-excel"></i> Экспорт Excel</button>
+                    <button id="importExcelBtn" class="btn btn--gold"><i class="fas fa-file-import"></i> Импорт Excel</button>
                     <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none" />
-                    <button id="exportJsonBtn" class="btn btn--gold"><i class="fas fa-file-export"></i> JSON</button>
-                    <button id="importJsonBtn" class="btn btn--gold"><i class="fas fa-file-import"></i> JSON</button>
+                    <button id="exportJsonBtn" class="btn btn--gold"><i class="fas fa-file-export"></i> Экспорт JSON</button>
+                    <button id="importJsonBtn" class="btn btn--gold"><i class="fas fa-file-import"></i> Импорт JSON</button>
                     <input type="file" id="importJsonInput" accept=".json" style="display:none" />
                     <button id="summaryReportBtn" class="btn btn--gold"><i class="fas fa-print"></i> Сводный отчёт</button>
                 </div>
@@ -177,7 +177,7 @@
                         </div>
                         <div class="form-group">
                             <label for="searchInput">Поиск</label>
-                            <input type="text" id="searchInput" placeholder="Введите текст..." />
+                            <input type="text" id="searchInput" placeholder="Введите text..." />
                         </div>
                         <div class="form-group filter-actions">
                             <button id="clearFiltersBtn" class="btn btn--secondary"><i class="fas fa-undo"></i> Сбросить</button>
@@ -190,7 +190,7 @@
                     <h2 class="card__title">
                         <i class="fas fa-user-plus"></i>
                         <span id="formTitle">Добавить сотрудника</span>
-                        <label style="margin-left:auto; font-size:0.9rem; font-weight:400; display:flex; align-items:center; gap:6px;">
+                        <label style="margin-left:auto; font-size:0.9rem; font-weight:400; display:flex; align-items:center; gap:6px; cursor:pointer;">
                             <input type="checkbox" id="quickModeCheck" checked /> Быстрая форма
                         </label>
                     </h2>
@@ -259,7 +259,7 @@
                                     <label for="photo">Фото сотрудника</label>
                                     <input type="file" id="photo" accept="image/*" />
                                     <div id="photoPreview" style="margin-top:8px; display:none;">
-                                        <img id="photoPreviewImg" src="#" alt="Предпросмотр" style="max-width:100px; max-height:100px; border-radius:6px; border:1px solid #d0d8e0;" />
+                                        <img id="photoPreviewImg" src="#" alt="Предпросмотр" style="max-width:100px; max-height:100px; border-radius:6px; border:1px solid #d0d8e0; object-fit:cover;" />
                                         <button type="button" id="removePhotoBtn" class="btn btn--secondary" style="padding:4px 10px; font-size:0.8rem; margin-top:4px;">Удалить фото</button>
                                     </div>
                                 </div>
@@ -290,6 +290,7 @@
                         <table id="employeeTable">
                             <thead>
                                 <tr>
+                                    <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllCheck" /></th>
                                     <th>Фото</th>
                                     <th>ФИО</th>
                                     <th>Подразделение</th>
