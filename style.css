@@ -619,3 +619,37 @@ table td:first-child input[type="checkbox"] {
         margin-left: 0 !important;
     }
 }
+
+/* ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ===== */
+#usersSection .card {
+    border-left-color: #8e44ad;
+}
+#usersSection .card__title i {
+    color: #8e44ad;
+}
+#usersTable td:last-child {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.btn-icon.role {
+    color: #8e44ad;
+}
+.btn-icon.role:hover {
+    background: #f4ecf7;
+    color: #6c3483;
+}
+.role-badge {
+    display: inline-block;
+    padding: 2px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #fff;
+}
+.role-badge.admin {
+    background: #2ecc71;
+}
+.role-badge.user {
+    background: #7f8c8d;
+}
