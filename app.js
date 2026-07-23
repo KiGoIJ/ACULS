@@ -22,9 +22,9 @@ auth.signInAnonymously()
     });
 
 const employeesRef = database.ref('employees');
+const usersRef = database.ref('users'); // новый узел для пользователей
 
-// ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (localStorage) =====
-const USERS_KEY = 'asuls_users';
+// ===== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (Firebase) =====
 const MASTER_KEY = 'asuls_master_password';
 const DEFAULT_MASTER = '123456';
 
@@ -41,48 +41,71 @@ function setMasterPassword(newMaster) {
     localStorage.setItem(MASTER_KEY, btoa(newMaster));
 }
 
+// Получение списка пользователей из Firebase (асинхронно)
 function getUsers() {
-    const raw = localStorage.getItem(USERS_KEY);
-    if (!raw) {
-        const defaultUsers = [
-            { fullName: 'Администратор', password: 'admin', role: 'admin' }
-        ];
-        localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers));
-        return defaultUsers;
-    }
-    return JSON.parse(raw);
+    return new Promise((resolve, reject) => {
+        usersRef.once('value', snapshot => {
+            const data = snapshot.val();
+            if (data) {
+                // Преобразуем объект в массив
+                const users = Object.values(data);
+                resolve(users);
+            } else {
+                // Если пользователей нет, создаём администратора по умолчанию
+                const defaultUsers = [
+                    { fullName: 'Администратор', password: 'admin', role: 'admin' }
+                ];
+                usersRef.set(defaultUsers).then(() => resolve(defaultUsers));
+            }
+        }, reject);
+    });
 }
 
+// Сохранение списка пользователей в Firebase
 function saveUsers(users) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    return usersRef.set(users);
 }
 
+// Аутентификация
 function authenticate(fullName, password, masterPassword) {
-    if (masterPassword !== getMasterPassword()) {
-        return { success: false, message: 'Неверный мастер-пароль' };
-    }
-    const users = getUsers();
-    const user = users.find(u => u.fullName === fullName && u.password === password);
-    if (!user) {
-        return { success: false, message: 'Неверное ФИО или пароль' };
-    }
-    return { success: true, user: user };
+    return new Promise((resolve, reject) => {
+        if (masterPassword !== getMasterPassword()) {
+            return resolve({ success: false, message: 'Неверный мастер-пароль' });
+        }
+        getUsers().then(users => {
+            const user = users.find(u => u.fullName === fullName && u.password === password);
+            if (!user) {
+                resolve({ success: false, message: 'Неверное ФИО или пароль' });
+            } else {
+                resolve({ success: true, user: user });
+            }
+        }).catch(err => {
+            reject(err);
+        });
+    });
 }
 
+// Регистрация
 function registerUser(fullName, password, masterPassword) {
-    if (masterPassword !== getMasterPassword()) {
-        return { success: false, message: 'Неверный мастер-пароль' };
-    }
-    const users = getUsers();
-    if (users.find(u => u.fullName === fullName)) {
-        return { success: false, message: 'Пользователь с таким ФИО уже существует' };
-    }
-    if (password.length < 4) {
-        return { success: false, message: 'Пароль должен быть не менее 4 символов' };
-    }
-    users.push({ fullName, password, role: 'user' });
-    saveUsers(users);
-    return { success: true };
+    return new Promise((resolve, reject) => {
+        if (masterPassword !== getMasterPassword()) {
+            return resolve({ success: false, message: 'Неверный мастер-пароль' });
+        }
+        getUsers().then(users => {
+            if (users.find(u => u.fullName === fullName)) {
+                resolve({ success: false, message: 'Пользователь с таким ФИО уже существует' });
+                return;
+            }
+            if (password.length < 4) {
+                resolve({ success: false, message: 'Пароль должен быть не менее 4 символов' });
+                return;
+            }
+            users.push({ fullName, password, role: 'user' });
+            saveUsers(users).then(() => {
+                resolve({ success: true });
+            }).catch(err => reject(err));
+        }).catch(err => reject(err));
+    });
 }
 
 // ===== СОСТОЯНИЕ =====
@@ -91,6 +114,7 @@ let isAdmin = false;
 let employees = [];
 let editingId = null;
 let filteredEmployees = [];
+let usersList = []; // кеш пользователей для отображения
 
 // ===== ЗАГРУЗКА ДАННЫХ ИЗ FIREBASE =====
 function loadData() {
@@ -111,6 +135,20 @@ function loadData() {
         if (isAdmin) {
             const personalNumber = document.getElementById('personalNumber');
             if (personalNumber) personalNumber.value = generatePersonalNumber();
+        }
+    });
+
+    // Подписка на изменения пользователей (для реального времени)
+    usersRef.on('value', snapshot => {
+        const data = snapshot.val();
+        if (data) {
+            usersList = Object.values(data);
+        } else {
+            usersList = [];
+        }
+        // Если раздел управления открыт, обновляем таблицу
+        if (document.getElementById('usersSection').style.display !== 'none') {
+            renderUserTable();
         }
     });
 }
@@ -689,7 +727,7 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== PDF (ОБНОВЛЕН ТЕКСТ) =====
+// ===== PDF =====
 function generateReport(emp) {
     try {
         const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
@@ -719,31 +757,7 @@ function generateReport(emp) {
 }
 
 function printEmployeeCard(emp) {
-    try {
-        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
-        const docDefinition = {
-            content: [
-                { text: 'ЛИЧНОЕ ДЕЛО', style: 'header', alignment: 'center' },
-                { text: '\n\n' },
-                { text: `ФИО: ${fio}` },
-                { text: `Дата рождения: ${emp.birthDate || '—'}` },
-                { text: `Пол: ${emp.gender || '—'}` },
-                { text: `Подразделение: ${emp.department || '—'}` },
-                { text: `Звание: ${emp.rank || '—'}` },
-                { text: `Должность: ${emp.position || '—'}` },
-                { text: `Личный номер: ${emp.personalNumber || '—'}` },
-                { text: `Дата принятия: ${emp.hireDate || '—'}` },
-                { text: `Статус: ${emp.status || '—'}` },
-                { text: '\n\n' },
-                { text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
-            ],
-            styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } },
-            defaultStyle: { fontSize: 12 }
-        };
-        pdfMake.createPdf(docDefinition).download(`Личное_дело_${emp.lastName}_${emp.firstName}.pdf`);
-    } catch(e) {
-        alert('Ошибка генерации PDF: ' + e.message);
-    }
+    generateReport(emp);
 }
 
 function generateSummaryReport() {
@@ -924,38 +938,44 @@ document.addEventListener('DOMContentLoaded', function() {
     const regMasterPassword = document.getElementById('regMasterPassword');
     const registerError = document.getElementById('registerError');
 
-    // === ФУНКЦИЯ ВХОДА ===
-    function login(fullName, password, masterPassword) {
-        const result = authenticate(fullName, password, masterPassword);
-        if (result.success) {
-            currentUser = result.user;
-            isAdmin = currentUser.role === 'admin';
-            loginScreen.style.display = 'none';
-            appContent.style.display = 'block';
-            userDisplay.textContent = currentUser.fullName + (isAdmin ? ' (админ)' : '');
+    // === ФУНКЦИЯ ВХОДА (АСИНХРОННАЯ) ===
+    async function login(fullName, password, masterPassword) {
+        try {
+            const result = await authenticate(fullName, password, masterPassword);
+            if (result.success) {
+                currentUser = result.user;
+                isAdmin = currentUser.role === 'admin';
+                loginScreen.style.display = 'none';
+                appContent.style.display = 'block';
+                userDisplay.textContent = currentUser.fullName + (isAdmin ? ' (админ)' : '');
 
-            const formCard = document.getElementById('formCard');
-            if (formCard) formCard.style.display = isAdmin ? 'block' : 'none';
-            if (manageUsersBtn) manageUsersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-            if (showEmployeesBtn) showEmployeesBtn.style.display = 'none';
-            if (deleteAllBtn) deleteAllBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-            if (importExcelBtn) importExcelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-            if (importJsonBtn) importJsonBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+                const formCard = document.getElementById('formCard');
+                if (formCard) formCard.style.display = isAdmin ? 'block' : 'none';
+                if (manageUsersBtn) manageUsersBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+                if (showEmployeesBtn) showEmployeesBtn.style.display = 'none';
+                if (deleteAllBtn) deleteAllBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+                if (importExcelBtn) importExcelBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+                if (importJsonBtn) importJsonBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
-            employeesSection.style.display = 'block';
-            usersSection.style.display = 'none';
+                employeesSection.style.display = 'block';
+                usersSection.style.display = 'none';
 
-            loadData();
-            loginError.style.display = 'none';
-            loginFullName.value = '';
-            loginPassword.value = '';
-            loginMasterPassword.value = '';
-        } else {
-            loginError.textContent = result.message;
+                loadData(); // теперь внутри также подписка на users
+                loginError.style.display = 'none';
+                loginFullName.value = '';
+                loginPassword.value = '';
+                loginMasterPassword.value = '';
+            } else {
+                loginError.textContent = result.message;
+                loginError.style.display = 'block';
+                loginPassword.value = '';
+                loginMasterPassword.value = '';
+                loginFullName.focus();
+            }
+        } catch(err) {
+            console.error('Ошибка входа:', err);
+            loginError.textContent = 'Ошибка соединения. Попробуйте позже.';
             loginError.style.display = 'block';
-            loginPassword.value = '';
-            loginMasterPassword.value = '';
-            loginFullName.focus();
         }
     }
 
@@ -969,6 +989,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loginMasterPassword.value = '';
         loginError.style.display = 'none';
         employeesRef.off();
+        usersRef.off();
     }
 
     loginForm.addEventListener('submit', function(e) {
@@ -977,7 +998,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     logoutBtn.addEventListener('click', logout);
 
-    // === РЕГИСТРАЦИЯ ===
+    // === РЕГИСТРАЦИЯ (АСИНХРОННАЯ) ===
     registerBtn.addEventListener('click', function() {
         registerModal.style.display = 'flex';
         regFullName.value = '';
@@ -991,7 +1012,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('click', function(e) {
         if (e.target === registerModal) registerModal.style.display = 'none';
     });
-    registerForm.addEventListener('submit', function(e) {
+    registerForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const fullName = regFullName.value.trim();
         const password = regPassword.value.trim();
@@ -1002,13 +1023,19 @@ document.addEventListener('DOMContentLoaded', function() {
             registerError.style.display = 'block';
             return;
         }
-        const result = registerUser(fullName, password, masterPassword);
-        if (result.success) {
-            alert('Регистрация успешна! Теперь войдите в систему.');
-            registerModal.style.display = 'none';
-            login(fullName, password, masterPassword);
-        } else {
-            registerError.textContent = result.message;
+        try {
+            const result = await registerUser(fullName, password, masterPassword);
+            if (result.success) {
+                alert('Регистрация успешна! Теперь войдите в систему.');
+                registerModal.style.display = 'none';
+                login(fullName, password, masterPassword);
+            } else {
+                registerError.textContent = result.message;
+                registerError.style.display = 'block';
+            }
+        } catch(err) {
+            console.error('Ошибка регистрации:', err);
+            registerError.textContent = 'Ошибка соединения. Попробуйте позже.';
             registerError.style.display = 'block';
         }
     });
@@ -1019,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', function() {
         employeesSection.style.display = 'none';
         usersSection.style.display = 'block';
         showEmployeesBtn.style.display = 'inline-flex';
-        renderUserTable();
+        renderUserTable(); // перерисовка из кеша usersList
     });
     showEmployeesBtn.addEventListener('click', function() {
         employeesSection.style.display = 'block';
@@ -1029,8 +1056,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // === УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (таблица) ===
     function renderUserTable() {
-        const users = getUsers();
+        const users = usersList; // используем кеш из подписки
         usersTableBody.innerHTML = '';
+        if (!users || users.length === 0) {
+            usersTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#7a8a9e;">Нет пользователей</td></tr>';
+            return;
+        }
         users.forEach((u, index) => {
             const tr = document.createElement('tr');
             const isSelf = u.fullName === currentUser.fullName;
@@ -1050,35 +1081,46 @@ document.addEventListener('DOMContentLoaded', function() {
             usersTableBody.appendChild(tr);
         });
 
+        // Обработчики (асинхронные)
         document.querySelectorAll('#usersTableBody .btn-icon').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
                 const name = this.dataset.name;
                 const action = this.dataset.action;
                 if (action === 'delete-user') {
-                    if (confirm(`Удалить пользователя ${name}?`)) {
-                        let users = getUsers().filter(u => u.fullName !== name);
-                        saveUsers(users);
+                    if (!confirm(`Удалить пользователя ${name}?`)) return;
+                    try {
+                        let users = await getUsers();
+                        users = users.filter(u => u.fullName !== name);
+                        await saveUsers(users);
+                        usersList = users; // обновляем кеш
                         renderUserTable();
                         const adminExists = users.some(u => u.role === 'admin');
                         if (!adminExists && users.length > 0) {
                             alert('Внимание! В системе больше нет администраторов. Назначьте нового.');
                         }
+                    } catch(err) {
+                        alert('Ошибка удаления: ' + err.message);
                     }
                 } else if (action === 'toggle-role') {
-                    let users = getUsers();
-                    const user = users.find(u => u.fullName === name);
-                    if (user) {
-                        user.role = user.role === 'admin' ? 'user' : 'admin';
-                        saveUsers(users);
-                        renderUserTable();
+                    try {
+                        let users = await getUsers();
+                        const user = users.find(u => u.fullName === name);
+                        if (user) {
+                            user.role = user.role === 'admin' ? 'user' : 'admin';
+                            await saveUsers(users);
+                            usersList = users;
+                            renderUserTable();
+                        }
+                    } catch(err) {
+                        alert('Ошибка изменения роли: ' + err.message);
                     }
                 }
             });
         });
     }
 
-    // Добавление пользователя
-    addUserForm.addEventListener('submit', function(e) {
+    // Добавление пользователя (асинхронное)
+    addUserForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         const fullName = newUserFullName.value.trim();
         const password = newUserPassword.value.trim();
@@ -1089,18 +1131,23 @@ document.addEventListener('DOMContentLoaded', function() {
             addUserError.style.display = 'block';
             return;
         }
-        const users = getUsers();
-        if (users.find(u => u.fullName === fullName)) {
-            addUserError.textContent = 'Пользователь с таким ФИО уже существует';
-            addUserError.style.display = 'block';
-            return;
+        try {
+            let users = await getUsers();
+            if (users.find(u => u.fullName === fullName)) {
+                addUserError.textContent = 'Пользователь с таким ФИО уже существует';
+                addUserError.style.display = 'block';
+                return;
+            }
+            users.push({ fullName, password, role });
+            await saveUsers(users);
+            usersList = users;
+            renderUserTable();
+            newUserFullName.value = '';
+            newUserPassword.value = '';
+            alert('Пользователь добавлен');
+        } catch(err) {
+            alert('Ошибка добавления: ' + err.message);
         }
-        users.push({ fullName, password, role });
-        saveUsers(users);
-        renderUserTable();
-        newUserFullName.value = '';
-        newUserPassword.value = '';
-        alert('Пользователь добавлен');
     });
 
     // === ФИЛЬТРЫ ===
@@ -1180,7 +1227,7 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Все сотрудники удалены.');
     });
 
-    // === СМЕНА ПАРОЛЯ ===
+    // === СМЕНА ПАРОЛЯ (локально, так как мастер-пароль локальный) ===
     changePasswordBtn.addEventListener('click', function() {
         changePasswordModal.style.display = 'flex';
         oldPassword.value = '';
@@ -1213,18 +1260,24 @@ document.addEventListener('DOMContentLoaded', function() {
             changePasswordError.style.display = 'block';
             return;
         }
-        const users = getUsers();
-        const userIdx = users.findIndex(u => u.fullName === currentUser.fullName);
-        if (userIdx !== -1) {
-            users[userIdx].password = newPwd;
-            saveUsers(users);
-            currentUser.password = newPwd;
-            alert('Пароль успешно изменён!');
-            changePasswordModal.style.display = 'none';
-        } else {
-            changePasswordError.textContent = 'Ошибка сохранения.';
+        // Меняем пароль в Firebase
+        getUsers().then(users => {
+            const userIdx = users.findIndex(u => u.fullName === currentUser.fullName);
+            if (userIdx !== -1) {
+                users[userIdx].password = newPwd;
+                saveUsers(users).then(() => {
+                    currentUser.password = newPwd;
+                    alert('Пароль успешно изменён!');
+                    changePasswordModal.style.display = 'none';
+                });
+            } else {
+                changePasswordError.textContent = 'Ошибка сохранения.';
+                changePasswordError.style.display = 'block';
+            }
+        }).catch(err => {
+            changePasswordError.textContent = 'Ошибка соединения.';
             changePasswordError.style.display = 'block';
-        }
+        });
     });
 
     loginScreen.style.display = 'flex';
