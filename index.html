@@ -21,8 +21,24 @@
 </head>
 <body>
 
+    <!-- ЭКРАН ДЕШИФРОВАНИЯ И ЗАГРУЗКИ (Holographic Boot Overlay) -->
+    <div id="decryptingScreen" class="decrypting-screen" style="display: none;">
+        <div class="decrypting-container">
+            <div class="scanner-line"></div>
+            <div class="terminal-header">
+                <i class="fas fa-shield-alt"></i> АСУЛС УФСБ : СИСТЕМА БЕЗОПАСНОСТИ СВЯЗИ
+            </div>
+            <div class="terminal-body" id="terminalLog"></div>
+            <div class="cyber-progress-bar">
+                <div class="cyber-progress-fill" id="cyberProgressFill"></div>
+            </div>
+            <div class="percent-display" id="cyberPercent">0%</div>
+        </div>
+    </div>
+
     <!-- ЭКРАН ВХОДА -->
     <div id="loginScreen" class="login-screen">
+        <canvas id="loginMatrixCanvas" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index:-1; pointer-events:none;"></canvas>
         <div class="login-card">
             <div class="login-logo">
                 <i class="fas fa-shield-alt"></i>
@@ -46,7 +62,7 @@
                 <div id="loginError" class="login-error" style="display:none;"></div>
             </form>
             <div style="margin-top:12px;">
-                <button id="registerBtn" class="btn btn--secondary btn--full" style="background:#6c7a8a;"><i class="fas fa-user-plus"></i> Зарегистрироваться</button>
+                <button id="registerBtn" class="btn btn--secondary btn--full" style="background:#202b3c; border-color:#2a3a50;"><i class="fas fa-user-plus"></i> Зарегистрироваться</button>
             </div>
         </div>
     </div>
@@ -86,6 +102,9 @@
                     <span>АСУЛС УФСБ</span>
                 </div>
                 <div class="header__actions">
+                    <button id="toggleSoundBtn" class="btn btn--secondary" style="padding: 10px 14px;" title="Звук терминала (Вкл/Выкл)">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
                     <span id="userDisplay" class="user-display"></span>
                     <button id="changePasswordBtn" class="btn btn--gold"><i class="fas fa-key"></i> Сменить пароль</button>
                     <button id="manageUsersBtn" class="btn btn--gold" style="display:none;"><i class="fas fa-users-cog"></i> Управление</button>
@@ -112,25 +131,57 @@
                 <section class="card stats-card">
                     <h2 class="card__title"><i class="fas fa-chart-pie"></i> Статистика</h2>
                     <div class="stats-grid" id="statsContainer">
+                        <!-- Тактический радар HUD -->
+                        <div class="stat-item hud-radar-item">
+                            <div class="hud-radar">
+                                <svg viewBox="0 0 100 100" class="radar-svg">
+                                    <defs>
+                                        <radialGradient id="radarSweepGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                                            <stop offset="0%" stop-color="#4299e1" stop-opacity="0.4" />
+                                            <stop offset="100%" stop-color="#4299e1" stop-opacity="0" />
+                                        </radialGradient>
+                                    </defs>
+                                    <circle cx="50" cy="50" r="45" class="radar-ring" />
+                                    <circle cx="50" cy="50" r="30" class="radar-ring" />
+                                    <circle cx="50" cy="50" r="15" class="radar-ring" />
+                                    <line x1="50" y1="5" x2="50" y2="95" class="radar-line" />
+                                    <line x1="5" y1="50" x2="95" y2="50" class="radar-line" />
+                                    <circle cx="50" cy="50" r="2" class="radar-center" />
+                                    <path d="M 50,50 L 50,5 A 45,45 0 0,1 82,18 Z" class="radar-sweep" fill="url(#radarSweepGradient)" />
+                                </svg>
+                            </div>
+                            <div style="display:flex; flex-direction:column; justify-content:center;">
+                                <span class="stat-label">Протокол наблюдения</span>
+                                <span class="stat-value" id="hudStatus" style="font-size:1.4rem; color:#4299e1; filter:drop-shadow(0 0 5px rgba(66,153,225,0.4)); font-weight:700;">АКТИВЕН</span>
+                            </div>
+                        </div>
                         <div class="stat-item">
-                            <i class="fas fa-users stat-icon" style="color:#2c6b3c;"></i>
-                            <span class="stat-label">Всего сотрудников</span>
-                            <span class="stat-value" id="totalCount">0</span>
+                            <i class="fas fa-users stat-icon" style="color:#48bb78;"></i>
+                            <div class="stat-info-container">
+                                <span class="stat-label">Всего сотрудников</span>
+                                <span class="stat-value" id="totalCount">0</span>
+                            </div>
                         </div>
                         <div class="stat-item">
                             <i class="fas fa-check-circle stat-icon" style="color:#2ecc71;"></i>
-                            <span class="stat-label">Действует</span>
-                            <span class="stat-value" id="activeCount">0</span>
+                            <div class="stat-info-container">
+                                <span class="stat-label">Действует</span>
+                                <span class="stat-value" id="activeCount">0</span>
+                            </div>
                         </div>
                         <div class="stat-item">
                             <i class="fas fa-clock stat-icon" style="color:#f1c40f;"></i>
-                            <span class="stat-label">Отпуск / Командировка</span>
-                            <span class="stat-value" id="inactiveCount">0</span>
+                            <div class="stat-info-container">
+                                <span class="stat-label">Отпуск / Командировка</span>
+                                <span class="stat-value" id="inactiveCount">0</span>
+                            </div>
                         </div>
                         <div class="stat-item">
                             <i class="fas fa-user-slash stat-icon" style="color:#95a5a6;"></i>
-                            <span class="stat-label">Уволен</span>
-                            <span class="stat-value" id="firedCount">0</span>
+                            <div class="stat-info-container">
+                                <span class="stat-label">Уволен</span>
+                                <span class="stat-value" id="firedCount">0</span>
+                            </div>
                         </div>
                     </div>
                     <div class="stats-category">
@@ -177,7 +228,7 @@
                         </div>
                         <div class="form-group">
                             <label for="searchInput">Поиск</label>
-                            <input type="text" id="searchInput" placeholder="Введите text..." />
+                            <input type="text" id="searchInput" placeholder="Введите текст..." />
                         </div>
                         <div class="form-group filter-actions">
                             <button id="clearFiltersBtn" class="btn btn--secondary"><i class="fas fa-undo"></i> Сбросить</button>
@@ -302,6 +353,17 @@
                             </thead>
                             <tbody id="tableBody"></tbody>
                         </table>
+                    </div>
+                </section>
+
+                <!-- ЖУРНАЛ СИСТЕМНОЙ АКТИВНОСТИ -->
+                <section class="card activity-log-card">
+                    <h2 class="card__title">
+                        <i class="fas fa-terminal"></i> Протокол системной активности (СЛЕДОВАНИЕ СОБЫТИЙ)
+                        <button id="clearLogsBtn" class="btn btn--secondary" style="margin-left:auto; padding: 4px 10px; font-size:0.75rem;"><i class="fas fa-ban"></i> Очистить лог</button>
+                    </h2>
+                    <div class="terminal-body log-terminal" id="activityLogBox">
+                        <div class="terminal-line log-entry">[СИСТЕМА ИНИЦИАЛИЗИРОВАНА. МОНИТОРИНГ АКТИВЕН]</div>
                     </div>
                 </section>
             </div>
