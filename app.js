@@ -1,4 +1,4 @@
-// ===== FIREBASE КОНФИГУРАЦИЯ (ВАШИ ДАННЫЕ) =====
+// ===== FIREBASE КОНФИГУРАЦИЯ =====
 const firebaseConfig = {
     apiKey: "AIzaSyA2RxdMUGwhXBe-rpZjQQfDYG1T9UMmaV0",
     authDomain: "aculs-a5fe1.firebaseapp.com",
@@ -70,7 +70,7 @@ function authenticate(fullName, password, masterPassword) {
     return { success: true, user: user };
 }
 
-// ===== РЕГИСТРАЦИЯ (с логами) =====
+// ===== РЕГИСТРАЦИЯ =====
 function registerUser(fullName, password, masterPassword) {
     console.log('🔐 Попытка регистрации:', fullName);
     console.log('Введённый мастер-пароль:', masterPassword);
@@ -287,7 +287,6 @@ function updateStats(list) {
     const fired = document.getElementById('firedCount');
     if (total) total.textContent = list.length;
 
-    // ---- Статусы (нормализация) ----
     const statusCount = {};
     list.forEach(emp => {
         let s = (emp.status || 'Не указано').trim();
@@ -305,7 +304,6 @@ function updateStats(list) {
     if (inactive) inactive.textContent = vacationCount + missionCount;
     if (fired) fired.textContent = firedCount;
 
-    // ---- Подразделения ----
     const deptCount = {};
     list.forEach(emp => {
         let d = (emp.department || 'Не указано').trim();
@@ -313,7 +311,6 @@ function updateStats(list) {
     });
     renderStatsCards('deptCards', deptCount);
 
-    // ---- Звания ----
     const rankCount = {};
     list.forEach(emp => {
         let r = (emp.rank || 'Не указано').trim();
@@ -321,7 +318,6 @@ function updateStats(list) {
     });
     renderStatsCards('rankCards', rankCount);
 
-    // ---- Статусы (карточки) ----
     const statusDisplay = {};
     Object.keys(statusCount).forEach(key => {
         statusDisplay[statusCount[key].display] = statusCount[key].count;
@@ -1222,21 +1218,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // === УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (АДМИН) ===
-    if (manageUsersBtn && manageUsersModal && manageUsersClose && userListDiv && addUserForm) {
-        manageUsersBtn.addEventListener('click', function() {
-            if (!isAdmin) return;
-            renderUserList();
-            manageUsersModal.style.display = 'flex';
-        });
-        manageUsersClose.addEventListener('click', () => manageUsersModal.style.display = 'none');
-        window.addEventListener('click', function(e) {
-            if (e.target === manageUsersModal) manageUsersModal.style.display = 'none';
-        });
-
+    if (manageUsersBtn && manageUsersModal && manageUsersClose && userListDiv) {
+        // Функция отображения списка пользователей
         function renderUserList() {
             const users = getUsers();
             console.log('📋 Отображение списка пользователей:', users);
             userListDiv.innerHTML = '';
+            if (users.length === 0) {
+                userListDiv.innerHTML = '<p style="color:#7a8a9e; text-align:center;">Нет зарегистрированных пользователей</p>';
+                return;
+            }
             users.forEach(u => {
                 const div = document.createElement('div');
                 div.className = 'user-item';
@@ -1256,40 +1247,60 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (confirm(`Удалить пользователя ${name}?`)) {
                         let users = getUsers().filter(u => u.fullName !== name);
                         saveUsers(users);
-                        renderUserList();
+                        renderUserList(); // обновляем список после удаления
+                        // Если удалили администратора (кроме себя), обновим доступ
+                        const adminExists = users.some(u => u.role === 'admin');
+                        if (!adminExists && users.length > 0) {
+                            alert('Внимание! В системе больше нет администраторов. Назначьте нового.');
+                        }
                     }
                 });
             });
         }
 
-        addUserForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const fullName = newUserFullName?.value.trim() || '';
-            const password = newUserPassword?.value.trim() || '';
-            const role = newUserRole?.value || 'user';
-            if (addUserError) addUserError.style.display = 'none';
-            if (!fullName || !password) {
-                if (addUserError) {
-                    addUserError.textContent = 'Заполните все поля';
-                    addUserError.style.display = 'block';
-                }
-                return;
-            }
-            const users = getUsers();
-            if (users.find(u => u.fullName === fullName)) {
-                if (addUserError) {
-                    addUserError.textContent = 'Пользователь с таким ФИО уже существует';
-                    addUserError.style.display = 'block';
-                }
-                return;
-            }
-            users.push({ fullName, password, role });
-            saveUsers(users);
-            renderUserList();
-            if (newUserFullName) newUserFullName.value = '';
-            if (newUserPassword) newUserPassword.value = '';
-            alert('Пользователь добавлен');
+        // Открытие модалки с обновлением списка
+        manageUsersBtn.addEventListener('click', function() {
+            if (!isAdmin) return;
+            renderUserList(); // обязательно обновляем перед показом
+            manageUsersModal.style.display = 'flex';
         });
+
+        manageUsersClose.addEventListener('click', () => manageUsersModal.style.display = 'none');
+        window.addEventListener('click', function(e) {
+            if (e.target === manageUsersModal) manageUsersModal.style.display = 'none';
+        });
+
+        // Добавление пользователя через форму в модалке
+        if (addUserForm) {
+            addUserForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const fullName = newUserFullName?.value.trim() || '';
+                const password = newUserPassword?.value.trim() || '';
+                const role = newUserRole?.value || 'user';
+                if (addUserError) addUserError.style.display = 'none';
+                if (!fullName || !password) {
+                    if (addUserError) {
+                        addUserError.textContent = 'Заполните все поля';
+                        addUserError.style.display = 'block';
+                    }
+                    return;
+                }
+                const users = getUsers();
+                if (users.find(u => u.fullName === fullName)) {
+                    if (addUserError) {
+                        addUserError.textContent = 'Пользователь с таким ФИО уже существует';
+                        addUserError.style.display = 'block';
+                    }
+                    return;
+                }
+                users.push({ fullName, password, role });
+                saveUsers(users);
+                renderUserList(); // обновляем список
+                if (newUserFullName) newUserFullName.value = '';
+                if (newUserPassword) newUserPassword.value = '';
+                alert('Пользователь добавлен');
+            });
+        }
     }
 
     // Начальное состояние
