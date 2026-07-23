@@ -117,25 +117,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// ===== ГЛОБАЛЬНЫЙ СВЕТОВОЙ ПРОЖЕКТОР ДЛЯ КАРТОЧЕК =====
-document.addEventListener('mousemove', function(e) {
-    const card = e.target.closest('.card');
-    if (card) {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        card.style.setProperty('--mouse-x', `${x}px`);
-        card.style.setProperty('--mouse-y', `${y}px`);
-        
-        // Гарантируем, что оверлей прожектора инициализирован
-        if (!card.querySelector('.card-glow-overlay')) {
-            const overlay = document.createElement('div');
-            overlay.className = 'card-glow-overlay';
-            card.appendChild(overlay);
-        }
-    }
-});
-
 // ===== ЖУРНАЛ СИСТЕМНОЙ АКТИВНОСТИ =====
 function addLogEntry(message) {
     const box = document.getElementById('activityLogBox');
@@ -543,7 +524,7 @@ function renderStatsCards(containerId, data) {
     });
 }
 
-// ===== ОТРИСОВКА ТАБЛИЦЫ С ИНТЕРВАЛЬНОЙ АНИМАЦИЕЙ CASCADE =====
+// ===== ОТРИСОВКА ТАБЛИЦЫ С ИНТЕРВАЛЬНОЙ АНИМАЦИЕЙ CASCADE И FIX-Wrapper =====
 function renderTable(data) {
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
@@ -590,8 +571,10 @@ function renderTable(data) {
                     </select>
                 </td>
                 <td>
-                    <button class="btn-icon save" data-id="${emp.id}" title="Сохранить (Ctrl+S)"><i class="fas fa-check"></i></button>
-                    <button class="btn-icon cancel" data-id="${emp.id}" title="Отменить (Esc)"><i class="fas fa-times"></i></button>
+                    <div class="actions-wrapper">
+                        <button class="btn-icon save" data-id="${emp.id}" title="Сохранить (Ctrl+S)"><i class="fas fa-check"></i></button>
+                        <button class="btn-icon cancel" data-id="${emp.id}" title="Отменить (Esc)"><i class="fas fa-times"></i></button>
+                    </div>
                 </td>
             `;
         } else {
@@ -614,11 +597,13 @@ function renderTable(data) {
                     </span>
                 </td>
                 <td>
-                    <button class="btn-icon edit" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} title="Редактировать"><i class="fas fa-pencil-alt"></i></button>
-                    <button class="btn-icon copy" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} title="Копировать"><i class="fas fa-copy"></i></button>
-                    <button class="btn-icon delete" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} title="Удалить"><i class="fas fa-trash-alt"></i></button>
-                    <button class="btn-icon print" data-id="${emp.id}" title="Скачать личное дело (PDF)"><i class="fas fa-print"></i></button>
-                    <button class="btn-icon report" data-id="${emp.id}" title="Скачать отчёт (PDF)"><i class="fas fa-file-alt"></i></button>
+                    <div class="actions-wrapper">
+                        <button class="btn-icon edit" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} title="Редактировать"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="btn-icon copy" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} title="Копировать"><i class="fas fa-copy"></i></button>
+                        <button class="btn-icon delete" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''} title="Удалить"><i class="fas fa-trash-alt"></i></button>
+                        <button class="btn-icon print" data-id="${emp.id}" title="Скачать личное дело (PDF)"><i class="fas fa-print"></i></button>
+                        <button class="btn-icon report" data-id="${emp.id}" title="Скачать отчёт (PDF)"><i class="fas fa-file-alt"></i></button>
+                    </div>
                 </td>
             `;
         }
@@ -1145,6 +1130,7 @@ function parseExcelDate(val) {
 }
 
 // ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
+// Экспорт Excel с помощью XLSX
 function exportToExcel() {
     try {
         if (typeof XLSX === 'undefined') {
