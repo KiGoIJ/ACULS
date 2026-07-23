@@ -383,7 +383,7 @@ function renderTable(data) {
                 </td>
             `;
         } else {
-            // Обычный вид
+            // Обычный вид (все иконки в одну линию)
             tr.innerHTML = `
                 <td>
                     ${hasPhoto ? `<img src="${emp.photo}" alt="фото" style="width:40px; height:40px; border-radius:50%; object-fit:cover; cursor:pointer;" class="photo-thumb" data-id="${emp.id}" />` : '<span style="color:#aaa;">—</span>'}
@@ -399,11 +399,11 @@ function renderTable(data) {
                     </span>
                 </td>
                 <td>
-                    <button class="btn-icon edit" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-pen"></i></button>
-                    <button class="btn-icon copy" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-copy" title="Копировать"></i></button>
-                    <button class="btn-icon delete" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-trash"></i></button>
-                    <button class="btn-icon print" data-id="${emp.id}"><i class="fas fa-print" title="Личное дело"></i></button>
-                    <button class="btn-icon report" data-id="${emp.id}"><i class="fas fa-file-alt" title="Отчёт"></i></button>
+                    <button class="btn-icon edit" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-pencil-alt"></i></button>
+                    <button class="btn-icon copy" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-copy"></i></button>
+                    <button class="btn-icon delete" data-id="${emp.id}" ${!isAdmin ? 'disabled' : ''}><i class="fas fa-trash-alt"></i></button>
+                    <button class="btn-icon print" data-id="${emp.id}"><i class="fas fa-print"></i></button>
+                    <button class="btn-icon report" data-id="${emp.id}"><i class="fas fa-file-alt"></i></button>
                 </td>
             `;
         }
@@ -491,7 +491,6 @@ function cancelInlineEdit(id) {
 }
 
 function saveInlineEdit(id) {
-    // Собираем данные из полей
     const emp = employees.find(e => e.id === id);
     if (!emp) return;
 
@@ -538,7 +537,7 @@ function updateSelectedCount() {
     // убрали чекбоксы, просто заглушка
 }
 
-// ===== ОБРАБОТКА ФОРМЫ ДОБАВЛЕНИЯ (без изменений) =====
+// ===== ОБРАБОТКА ФОРМЫ ДОБАВЛЕНИЯ =====
 const employeeForm = document.getElementById('employeeForm');
 if (employeeForm) {
     employeeForm.addEventListener('submit', function(e) {
@@ -600,13 +599,12 @@ function resetForm() {
     document.getElementById('personalNumber').value = generatePersonalNumber();
 }
 
-// ===== ГРУППОВОЕ ДЕЙСТВИЕ (без изменений) =====
+// ===== ГРУППОВОЕ ДЕЙСТВИЕ =====
 const groupApplyBtn = document.getElementById('groupActionApplyBtn');
 if (groupApplyBtn) {
     groupApplyBtn.addEventListener('click', function() {
         const action = document.getElementById('groupActionSelect')?.value;
         if (!action) { alert('Выберите действие'); return; }
-        // Модалка для ввода значения (упрощённо)
         const value = prompt('Введите новое значение:');
         if (value === null) return;
         let changed = 0;
@@ -624,13 +622,6 @@ if (groupApplyBtn) {
     });
 }
 
-// ===== PDF, ЭКСПОРТ (без изменений, только текст обновлён) =====
-function generateReport(emp) { /* ... */ }
-function printEmployeeCard(emp) { /* ... */ }
-function generateSummaryReport() { /* ... */ }
-function exportToExcel() { /* ... */ }
-function importFromExcel(file) { /* ... */ }
-
 // ===== ПОКАЗ ФОТО =====
 function showPhotoModal(src, name) {
     const modal = document.createElement('div');
@@ -647,6 +638,185 @@ function showPhotoModal(src, name) {
     modal.addEventListener('click', function(e) {
         if (e.target === modal) modal.remove();
     });
+}
+
+// ===== PDF ОТЧЁТЫ =====
+function generateReport(emp) {
+    try {
+        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+        const docDefinition = {
+            content: [
+                { text: 'ОТЧЁТ О СОТРУДНИКЕ', style: 'header', alignment: 'center' },
+                { text: '\n\n' },
+                { text: `ФИО: ${fio}` },
+                { text: `Дата рождения: ${emp.birthDate || '—'}` },
+                { text: `Пол: ${emp.gender || '—'}` },
+                { text: `Подразделение: ${emp.department || '—'}` },
+                { text: `Звание: ${emp.rank || '—'}` },
+                { text: `Должность: ${emp.position || '—'}` },
+                { text: `Личный номер: ${emp.personalNumber || '—'}` },
+                { text: `Дата принятия: ${emp.hireDate || '—'}` },
+                { text: `Статус: ${emp.status || '—'}` },
+                { text: '\n\n' },
+                { text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
+            ],
+            styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } },
+            defaultStyle: { fontSize: 12 }
+        };
+        pdfMake.createPdf(docDefinition).download(`Отчёт_${emp.lastName}_${emp.firstName}.pdf`);
+    } catch(e) {
+        alert('Ошибка генерации PDF: ' + e.message);
+    }
+}
+
+function printEmployeeCard(emp) {
+    try {
+        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+        const docDefinition = {
+            content: [
+                { text: 'ЛИЧНОЕ ДЕЛО', style: 'header', alignment: 'center' },
+                { text: '\n\n' },
+                { text: `ФИО: ${fio}` },
+                { text: `Дата рождения: ${emp.birthDate || '—'}` },
+                { text: `Пол: ${emp.gender || '—'}` },
+                { text: `Подразделение: ${emp.department || '—'}` },
+                { text: `Звание: ${emp.rank || '—'}` },
+                { text: `Должность: ${emp.position || '—'}` },
+                { text: `Личный номер: ${emp.personalNumber || '—'}` },
+                { text: `Дата принятия: ${emp.hireDate || '—'}` },
+                { text: `Статус: ${emp.status || '—'}` },
+                { text: '\n\n' },
+                { text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
+            ],
+            styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } },
+            defaultStyle: { fontSize: 12 }
+        };
+        pdfMake.createPdf(docDefinition).download(`Личное_дело_${emp.lastName}_${emp.firstName}.pdf`);
+    } catch(e) {
+        alert('Ошибка генерации PDF: ' + e.message);
+    }
+}
+
+function generateSummaryReport() {
+    if (!filteredEmployees || filteredEmployees.length === 0) {
+        alert('Нет данных для отчёта');
+        return;
+    }
+    try {
+        const tableBody = [
+            ['№', 'ФИО', 'Подразделение', 'Звание', 'Должность', 'Статус']
+        ];
+        filteredEmployees.forEach((emp, idx) => {
+            tableBody.push([
+                (idx+1).toString(),
+                `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim(),
+                emp.department || '',
+                emp.rank || '',
+                emp.position || '',
+                emp.status || ''
+            ]);
+        });
+        const docDefinition = {
+            content: [
+                { text: 'СВОДНЫЙ ОТЧЁТ ПО ЛИЧНОМУ СОСТАВУ', style: 'header', alignment: 'center' },
+                { text: '\n' },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: [20, 'auto', 'auto', 'auto', 'auto', 'auto'],
+                        body: tableBody
+                    },
+                    style: 'table'
+                },
+                { text: '\n' },
+                { text: `Всего: ${filteredEmployees.length} сотрудников`, fontSize: 10 },
+                { text: `Сформировано в АСУЛС УФСБ ${new Date().toLocaleDateString()}`, alignment: 'center', fontSize: 10, color: '#7a8a9e' }
+            ],
+            styles: {
+                header: { fontSize: 16, bold: true, margin: [0, 0, 0, 10] },
+                table: { margin: [0, 5, 0, 5] }
+            },
+            defaultStyle: { fontSize: 10 }
+        };
+        pdfMake.createPdf(docDefinition).download('Сводный_отчёт.pdf');
+    } catch(e) {
+        alert('Ошибка генерации PDF: ' + e.message);
+    }
+}
+
+// ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
+function exportToExcel() {
+    try {
+        if (typeof XLSX === 'undefined') {
+            alert('Библиотека XLSX не загружена.');
+            return;
+        }
+        const data = filteredEmployees.map(emp => ({
+            'Фамилия': emp.lastName,
+            'Имя': emp.firstName,
+            'Отчество': emp.patronymic || '',
+            'Дата рождения': emp.birthDate || '',
+            'Пол': emp.gender || '',
+            'Подразделение': emp.department || '',
+            'Звание': emp.rank || '',
+            'Должность': emp.position || '',
+            'Личный номер': emp.personalNumber || '',
+            'Дата принятия': emp.hireDate || '',
+            'Статус': emp.status || ''
+        }));
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Сотрудники');
+        XLSX.writeFile(wb, 'АСУЛС_список.xlsx');
+    } catch(e) {
+        alert('Ошибка экспорта: ' + e.message);
+    }
+}
+
+function importFromExcel(file) {
+    try {
+        if (typeof XLSX === 'undefined') {
+            alert('Библиотека XLSX не загружена.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet);
+                const imported = rows.map(row => ({
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 4),
+                    lastName: (row['Фамилия'] || '').toString().trim(),
+                    firstName: (row['Имя'] || '').toString().trim(),
+                    patronymic: (row['Отчество'] || '').toString().trim(),
+                    birthDate: row['Дата рождения'] ? new Date(row['Дата рождения']).toISOString().split('T')[0] : '',
+                    gender: (row['Пол'] || '').toString().trim(),
+                    department: (row['Подразделение'] || '').toString().trim(),
+                    rank: (row['Звание'] || '').toString().trim(),
+                    position: (row['Должность'] || '').toString().trim(),
+                    personalNumber: (row['Личный номер'] || '').toString().trim(),
+                    hireDate: row['Дата принятия'] ? new Date(row['Дата принятия']).toISOString().split('T')[0] : '',
+                    status: (row['Статус'] || '').toString().trim()
+                }));
+                if (imported.length > 0) {
+                    if (confirm(`Найдено ${imported.length} записей. Заменить все текущие данные?`)) {
+                        employees = imported;
+                        saveData();
+                        alert('Импорт выполнен успешно!');
+                    }
+                } else {
+                    alert('Файл не содержит данных.');
+                }
+            } catch(err) {
+                alert('Ошибка при чтении файла: ' + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    } catch(e) {
+        alert('Ошибка импорта: ' + e.message);
+    }
 }
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
@@ -705,7 +875,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Загружаем пользователей из Firebase
     loadUsers(() => {
-        // После загрузки пользователей показываем экран входа
         loginScreen.style.display = 'flex';
         appContent.style.display = 'none';
     });
@@ -825,7 +994,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>
                     ${!isSelf ? `
                         <button class="btn-icon role" data-name="${u.fullName}" data-action="toggle-role" title="Сменить роль"><i class="fas fa-exchange-alt"></i></button>
-                        <button class="btn-icon delete" data-name="${u.fullName}" data-action="delete-user" title="Удалить"><i class="fas fa-trash"></i></button>
+                        <button class="btn-icon delete" data-name="${u.fullName}" data-action="delete-user" title="Удалить"><i class="fas fa-trash-alt"></i></button>
                     ` : `
                         <span style="color:#7a8a9e; font-size:0.85rem;">(это вы)</span>
                     `}
@@ -1001,6 +1170,4 @@ document.addEventListener('DOMContentLoaded', function() {
             changePasswordError.style.display = 'block';
         }
     });
-
-    // Загружаем сотрудников после входа, но уже подписаны через loadData()
 });
