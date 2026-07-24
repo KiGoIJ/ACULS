@@ -351,7 +351,7 @@ function validateField(input) {
     return valid;
 }
 
-// ===== ФИЛЬТРАЦИЯ =====
+// ===== ФИЛЬТРАЦИЯ С УЧЕТОМ ПОЗЫВНОГО =====
 function applyFilters() {
     const filterDepartment = document.getElementById('filterDepartment');
     const filterRank = document.getElementById('filterRank');
@@ -372,7 +372,8 @@ function applyFilters() {
         if (rank && emp.rank !== rank) match = false;
         if (status && emp.status !== status) match = false;
         if (text) {
-            const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.toLowerCase();
+            const callsignNormalized = emp.callsign ? emp.callsign.replace(/[«»"']/g, '') : '';
+            const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''} ${emp.callsign || ''} ${callsignNormalized}`.toLowerCase();
             let fieldMatch = false;
             if (field === 'all') {
                 fieldMatch = fio.includes(text) ||
@@ -436,6 +437,7 @@ function populateSelect(id, values) {
     select.value = currentValue;
 }
 
+// Заполнение дата-списков автодополнения
 function populateDatalist(id, values) {
     const datalist = document.getElementById(id);
     if (!datalist) return;
@@ -533,7 +535,10 @@ function renderTable(data) {
     const listToRender = data || filteredEmployees;
     
     listToRender.forEach((emp, index) => {
-        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+        // Форматирование позывного с красивыми кавычками «»
+        const callsignStr = emp.callsign ? ` «${emp.callsign.replace(/[«»"']/g, '')}»` : '';
+        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}${callsignStr}`.trim();
+        
         const tr = document.createElement('tr');
         const hasPhoto = emp.photo && emp.photo.length > 100;
         let statusClass = '';
@@ -546,7 +551,7 @@ function renderTable(data) {
         tr.style.animationDelay = `${index * 0.025}s`;
         tr.classList.add('table-row-animate');
 
-        // Если строка редактируется – показываем поля ввода
+        // Если строка редактируется – показываем поля ввода (включая Позывной)
         if (editingRowId === emp.id) {
             tr.className = 'edit-row';
             tr.innerHTML = `
@@ -558,6 +563,7 @@ function renderTable(data) {
                     <input type="text" id="edit-lastName-${emp.id}" value="${emp.lastName || ''}" placeholder="Фамилия" />
                     <input type="text" id="edit-firstName-${emp.id}" value="${emp.firstName || ''}" placeholder="Имя" />
                     <input type="text" id="edit-patronymic-${emp.id}" value="${emp.patronymic || ''}" placeholder="Отчество" />
+                    <input type="text" id="edit-callsign-${emp.id}" value="${emp.callsign || ''}" placeholder="Позывной" style="margin-top:4px; border-color:#9f7aea;" />
                 </td>
                 <td><input type="text" id="edit-department-${emp.id}" value="${emp.department || ''}" placeholder="Подразделение" /></td>
                 <td><input type="text" id="edit-rank-${emp.id}" value="${emp.rank || ''}" placeholder="Звание" /></td>
@@ -739,6 +745,7 @@ function saveInlineEdit(id) {
     const lastName = document.getElementById(`edit-lastName-${id}`)?.value.trim() || '';
     const firstName = document.getElementById(`edit-firstName-${id}`)?.value.trim() || '';
     const patronymic = document.getElementById(`edit-patronymic-${id}`)?.value.trim() || '';
+    const callsign = document.getElementById(`edit-callsign-${id}`)?.value.trim() || '';
     const department = document.getElementById(`edit-department-${id}`)?.value.trim() || '';
     const rank = document.getElementById(`edit-rank-${id}`)?.value.trim() || '';
     const position = document.getElementById(`edit-position-${id}`)?.value.trim() || '';
@@ -752,6 +759,7 @@ function saveInlineEdit(id) {
     emp.lastName = lastName;
     emp.firstName = firstName;
     emp.patronymic = patronymic;
+    emp.callsign = callsign;
     emp.department = department;
     emp.rank = rank;
     emp.position = position;
@@ -816,6 +824,7 @@ if (employeeForm) {
             lastName: lastName.value.trim(),
             firstName: firstName.value.trim(),
             patronymic: document.getElementById('patronymic').value.trim(),
+            callsign: document.getElementById('callsign').value.trim(),
             birthDate: document.getElementById('birthDate').value,
             gender: document.getElementById('gender').value,
             department: document.getElementById('department').value.trim(),
@@ -929,12 +938,14 @@ function showPhotoModal(src, name) {
     });
 }
 
-// ===== PDF ОТЧЁТЫ (с поддержкой кириллицы и фото сотрудника) =====
+// ===== PDF ОТЧЁТЫ (с поддержкой кириллицы, фото и позывного сотрудника) =====
 function generateReport(emp) {
     try {
-        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+        const callsignStr = emp.callsign ? ` «${emp.callsign}»` : '';
+        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}${callsignStr}`.trim();
         const bodyContent = [
             { text: `ФИО: ${fio}`, fontSize: 13, bold: true, margin: [0, 2] },
+            { text: `Позывной: ${emp.callsign || '—'}`, fontSize: 11, color: '#cfa134', margin: [0, 2], bold: true },
             { text: `Личный номер: ${emp.personalNumber || '—'}`, fontSize: 11, margin: [0, 2] },
             { text: `Дата рождения: ${emp.birthDate || '—'}`, margin: [0, 2] },
             { text: `Пол: ${emp.gender || '—'}`, margin: [0, 2] },
@@ -985,9 +996,11 @@ function generateReport(emp) {
 
 function printEmployeeCard(emp) {
     try {
-        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim();
+        const callsignStr = emp.callsign ? ` «${emp.callsign}»` : '';
+        const fio = `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}${callsignStr}`.trim();
         const bodyContent = [
             { text: `ФИО: ${fio}`, fontSize: 13, bold: true, margin: [0, 2] },
+            { text: `Позывной: ${emp.callsign || '—'}`, fontSize: 11, color: '#cfa134', margin: [0, 2], bold: true },
             { text: `Личный номер: ${emp.personalNumber || '—'}`, fontSize: 11, margin: [0, 2] },
             { text: `Дата рождения: ${emp.birthDate || '—'}`, margin: [0, 2] },
             { text: `Пол: ${emp.gender || '—'}`, margin: [0, 2] },
@@ -1046,9 +1059,10 @@ function generateSummaryReport() {
             ['№', 'ФИО', 'Подразделение', 'Звание', 'Должность', 'Статус']
         ];
         filteredEmployees.forEach((emp, idx) => {
+            const callsignStr = emp.callsign ? ` «${emp.callsign.replace(/[«»"']/g, '')}»` : '';
             tableBody.push([
                 (idx+1).toString(),
-                `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}`.trim(),
+                `${emp.lastName} ${emp.firstName} ${emp.patronymic || ''}${callsignStr}`.trim(),
                 emp.department || '',
                 emp.rank || '',
                 emp.position || '',
@@ -1084,53 +1098,7 @@ function generateSummaryReport() {
     }
 }
 
-// ===== УМНЫЙ ПАРСЕР ДАТ EXCEL (полностью исключает краши из-за русского формата дат DD.MM.YYYY) =====
-function parseExcelDate(val) {
-    if (!val) return '';
-    if (val instanceof Date) {
-        if (isNaN(val.getTime())) return '';
-        return val.toISOString().split('T')[0];
-    }
-    if (typeof val === 'number') {
-        const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-        if (!isNaN(date.getTime())) {
-            return date.toISOString().split('T')[0];
-        }
-    }
-    const str = String(val).trim();
-    if (!str) return '';
-
-    const partsDMY = str.match(/^(\d{1,2})[\.\-\/](\d{1,2})[\.\-\/](\d{4})$/);
-    if (partsDMY) {
-        const d = parseInt(partsDMY[1], 10);
-        const m = parseInt(partsDMY[2], 10) - 1;
-        const y = parseInt(partsDMY[3], 10);
-        const date = new Date(y, m, d);
-        if (!isNaN(date.getTime())) {
-            return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        }
-    }
-
-    const partsYMD = str.match(/^(\d{4})[\.\-\/](\d{1,2})[\.\-\/](\d{1,2})$/);
-    if (partsYMD) {
-        const y = parseInt(partsYMD[1], 10);
-        const m = parseInt(partsYMD[2], 10) - 1;
-        const d = parseInt(partsYMD[3], 10);
-        const date = new Date(y, m, d);
-        if (!isNaN(date.getTime())) {
-            return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        }
-    }
-
-    const parsed = new Date(str);
-    if (!isNaN(parsed.getTime())) {
-        return parsed.toISOString().split('T')[0];
-    }
-    return '';
-}
-
 // ===== ЭКСПОРТ / ИМПОРТ EXCEL =====
-// Экспорт Excel с помощью XLSX
 function exportToExcel() {
     try {
         if (typeof XLSX === 'undefined') {
@@ -1141,6 +1109,7 @@ function exportToExcel() {
             'Фамилия': emp.lastName,
             'Имя': emp.firstName,
             'Отчество': emp.patronymic || '',
+            'Позывной': emp.callsign || '',
             'Дата рождения': emp.birthDate || '',
             'Пол': emp.gender || '',
             'Подразделение': emp.department || '',
@@ -1178,6 +1147,7 @@ function importFromExcel(file) {
                     lastName: (row['Фамилия'] || '').toString().trim(),
                     firstName: (row['Имя'] || '').toString().trim(),
                     patronymic: (row['Отчество'] || '').toString().trim(),
+                    callsign: (row['Позывной'] || '').toString().trim(),
                     birthDate: parseExcelDate(row['Дата рождения']),
                     gender: (row['Пол'] || '').toString().trim(),
                     department: (row['Подразделение'] || '').toString().trim(),
@@ -1207,7 +1177,7 @@ function importFromExcel(file) {
     }
 }
 
-// ===== ИНТЕРАКТИВНЫЙ ФОН НА CANVAS (Сеть светящихся узлов с притяжением к мыши) =====
+// ===== ИНТЕРАКТИВНЫЙ ФОН НА CANVAS =====
 function initLoginBackground() {
     const canvas = document.getElementById('loginMatrixCanvas');
     if (!canvas) return;
@@ -1249,7 +1219,6 @@ function initLoginBackground() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         particles.forEach((p, idx) => {
-            // Притяжение к мыши
             if (mouse.x !== null && mouse.y !== null) {
                 const dx = mouse.x - p.x;
                 const dy = mouse.y - p.y;
@@ -1272,7 +1241,6 @@ function initLoginBackground() {
             ctx.fillStyle = `rgba(207, 161, 52, ${p.alpha})`;
             ctx.fill();
             
-            // Связующие линии
             for (let j = idx + 1; j < particles.length; j++) {
                 const p2 = particles[j];
                 const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
@@ -1294,7 +1262,6 @@ function initLoginBackground() {
 
 // ===== ИНИЦИАЛИЗАЦИЯ =====
 document.addEventListener('DOMContentLoaded', function() {
-    // Запуск светящегося интерактивного фона на экране логина
     initLoginBackground();
 
     const loginScreen = document.getElementById('loginScreen');
@@ -1443,7 +1410,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function login(fullName, password, masterPassword) {
         const result = authenticate(fullName, password, masterPassword);
         if (result.success) {
-            // Запуск голографического экрана дешифрования
             runDecryptionBoot(() => {
                 currentUser = result.user;
                 isAdmin = currentUser.role === 'admin';
@@ -1468,7 +1434,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 loginPassword.value = '';
                 loginMasterPassword.value = '';
                 
-                // Фиксируем вход в системный лог
                 setTimeout(() => {
                     addLogEntry(`Успешная тактическая авторизация. Сессия инициализирована для: ${currentUser.fullName} (${currentUser.role})`);
                 }, 500);
@@ -1567,12 +1532,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td>${u.fullName}</td>
                 <td><span class="role-badge ${u.role}">${u.role === 'admin' ? 'Администратор' : 'Пользователь'}</span></td>
                 <td>
-                    ${!isSelf ? `
-                        <button class="btn-icon role" data-name="${u.fullName}" data-action="toggle-role" title="Сменить роль"><i class="fas fa-exchange-alt"></i></button>
-                        <button class="btn-icon delete" data-name="${u.fullName}" data-action="delete-user" title="Удалить"><i class="fas fa-trash-alt"></i></button>
-                    ` : `
-                        <span style="color:#7a8a9e; font-size:0.85rem;">(это вы)</span>
-                    `}
+                    <div class="actions-wrapper">
+                        ${!isSelf ? `
+                            <button class="btn-icon role" data-name="${u.fullName}" data-action="toggle-role" title="Сменить роль"><i class="fas fa-exchange-alt"></i></button>
+                            <button class="btn-icon delete" data-name="${u.fullName}" data-action="delete-user" title="Удалить"><i class="fas fa-trash-alt"></i></button>
+                        ` : `
+                            <span style="color:#7a8a9e; font-size:0.85rem;">(это вы)</span>
+                        `}
+                    </div>
                 </td>
             `;
             usersTableBody.appendChild(tr);
